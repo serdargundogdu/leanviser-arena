@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { fetchScenario, runSimulation } from "./api";
 import { CoachingPanel } from "./components/CoachingPanel";
+import { CumulativeFlowDiagram } from "./components/CumulativeFlowDiagram";
 import { FlowTimeDebrief } from "./components/FlowTimeDebrief";
 import { LeverControls } from "./components/LeverControls";
 import { ScoreCard } from "./components/ScoreCard";
@@ -60,7 +61,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.4</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.5</p>
       </header>
 
       {error && (
@@ -102,14 +103,22 @@ export function App() {
 
           <div className="panel panel--wide">
             {result && (
-              <FlowTimeDebrief
-                valueAddedMean={result.value_added_mean}
-                waitingMean={result.waiting_mean}
-                leadTimes={result.lead_times}
-                onTime={result.on_time}
-                taktTime={scenario.takt_time}
-                metrics={result.metrics}
-              />
+              <>
+                <FlowTimeDebrief
+                  valueAddedMean={result.value_added_mean}
+                  waitingMean={result.waiting_mean}
+                  leadTimes={result.lead_times}
+                  onTime={result.on_time}
+                  taktTime={scenario.takt_time}
+                  metrics={result.metrics}
+                />
+                <CumulativeFlowDiagram
+                  releaseTimes={result.release_times}
+                  completionTimes={result.completion_times}
+                  makespan={result.metrics.makespan}
+                  orderCount={result.metrics.order_count}
+                />
+              </>
             )}
           </div>
         </section>

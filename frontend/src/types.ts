@@ -51,6 +51,8 @@ export interface SimulateResponse {
   insights: Insight[];
   lead_times: number[];
   on_time: boolean[];
+  release_times: number[];
+  completion_times: number[];
   value_added_mean: number;
   waiting_mean: number;
   applied_batch_size: number;
