@@ -21,14 +21,14 @@ STATIONS = (
     StationSpec("weld", cycle_time_mean=6.0, cycle_time_variance=2.0),  # bottleneck
     StationSpec("paint", cycle_time_mean=5.0, cycle_time_variance=1.5),
 )
-DUE_DATE = 800.0
+DELIVERY_WINDOW = 800.0
 
 
 def _config(**overrides: object) -> LineConfig:
     params: dict = dict(
         stations=STATIONS,
         order_count=60,
-        due_date=DUE_DATE,
+        delivery_window=DELIVERY_WINDOW,
         seed=7,
     )
     params.update(overrides)
@@ -36,14 +36,14 @@ def _config(**overrides: object) -> LineConfig:
 
 
 def test_flow_efficiency_in_unit_interval() -> None:
-    metrics = compute_metrics(simulate(_config()), due_date=DUE_DATE)
+    metrics = compute_metrics(simulate(_config()), delivery_window=DELIVERY_WINDOW)
     assert 0.0 < metrics.flow_efficiency <= 1.0
 
 
 def test_littles_law_identity() -> None:
     config = _config()
     log = simulate(config)
-    metrics = compute_metrics(log, due_date=DUE_DATE)
+    metrics = compute_metrics(log, delivery_window=DELIVERY_WINDOW)
 
     # System starts and ends empty ⇒ area under the WIP curve == Σ lead time.
     area_under_wip = metrics.average_wip * metrics.makespan
@@ -58,16 +58,20 @@ def test_littles_law_identity() -> None:
 
 def test_smaller_batch_lowers_median_lead_time() -> None:
     # Identical config and seed; only the transfer batch differs.
-    large_batch = compute_metrics(simulate(_config(batch_size=10)), due_date=DUE_DATE)
-    one_piece = compute_metrics(simulate(_config(batch_size=1)), due_date=DUE_DATE)
+    large_batch = compute_metrics(simulate(_config(batch_size=10)), delivery_window=DELIVERY_WINDOW)
+    one_piece = compute_metrics(simulate(_config(batch_size=1)), delivery_window=DELIVERY_WINDOW)
     assert one_piece.lead_time_median < large_batch.lead_time_median
 
 
 def test_overproduction_inflates_wip_without_higher_throughput() -> None:
     # Flood: release everything at t=0 (classic overproduction / push).
-    flood = compute_metrics(simulate(_config(release_interval=0.0)), due_date=DUE_DATE)
+    flood = compute_metrics(
+        simulate(_config(release_interval=0.0)), delivery_window=DELIVERY_WINDOW
+    )
     # Levelled: release in step with the bottleneck cadence (~weld cycle time).
-    levelled = compute_metrics(simulate(_config(release_interval=6.0)), due_date=DUE_DATE)
+    levelled = compute_metrics(
+        simulate(_config(release_interval=6.0)), delivery_window=DELIVERY_WINDOW
+    )
 
     # Overproduction inflates work-in-process ...
     assert flood.average_wip > levelled.average_wip

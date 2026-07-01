@@ -19,7 +19,7 @@ def _config(seed: int = 42, batch_size: int = 1) -> LineConfig:
     return LineConfig(
         stations=STATIONS,
         order_count=40,
-        due_date=500.0,
+        delivery_window=60.0,
         seed=seed,
         batch_size=batch_size,
     )
@@ -34,13 +34,13 @@ def test_same_seed_bit_identical_event_log() -> None:
 
 
 def test_same_seed_same_metrics() -> None:
-    metrics1 = compute_metrics(simulate(_config()), due_date=500.0)
-    metrics2 = compute_metrics(simulate(_config()), due_date=500.0)
+    metrics1 = compute_metrics(simulate(_config()), delivery_window=60.0)
+    metrics2 = compute_metrics(simulate(_config()), delivery_window=60.0)
     assert metrics1 == metrics2
 
 
 def test_different_seed_changes_result() -> None:
-    metrics1 = compute_metrics(simulate(_config(seed=1)), due_date=500.0)
-    metrics2 = compute_metrics(simulate(_config(seed=2)), due_date=500.0)
+    metrics1 = compute_metrics(simulate(_config(seed=1)), delivery_window=60.0)
+    metrics2 = compute_metrics(simulate(_config(seed=2)), delivery_window=60.0)
     # Distinct seeds drive distinct cycle-time draws → distinct flow metrics.
     assert metrics1 != metrics2

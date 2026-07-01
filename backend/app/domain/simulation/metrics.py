@@ -51,14 +51,14 @@ def _average_wip(log: EventLog) -> float:
     return area / makespan
 
 
-def compute_metrics(log: EventLog, due_date: float) -> SimulationMetrics:
-    """Derive flow metrics from an event log and a delivery deadline."""
+def compute_metrics(log: EventLog, delivery_window: float) -> SimulationMetrics:
+    """Derive flow metrics from an event log and a promised delivery window."""
     lead_times = [order.lead_time for order in log.orders]
     total_lead_time = sum(lead_times)
     total_value_added = sum(order.value_added_time for order in log.orders)
     order_count = len(log.orders)
     makespan = log.makespan
-    on_time = sum(1 for order in log.orders if order.is_on_time(due_date))
+    on_time = sum(1 for order in log.orders if order.is_on_time(delivery_window))
 
     return SimulationMetrics(
         lead_time_median=statistics.median(lead_times),

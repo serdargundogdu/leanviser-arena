@@ -30,4 +30,4 @@ class RunSimulationCommand:
 def run_simulation(command: RunSimulationCommand) -> SimulationMetrics:
     """Execute the deterministic simulation and return its flow metrics."""
     log = simulate(command.config)
-    return compute_metrics(log, command.config.due_date)
+    return compute_metrics(log, command.config.delivery_window)

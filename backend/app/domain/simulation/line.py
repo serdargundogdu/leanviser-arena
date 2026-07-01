@@ -57,15 +57,16 @@ class LineConfig:
 
     ``stations`` is ordered upstream→downstream. ``order_count`` orders are
     released per ``release_policy``; ``release_interval`` paces PUSH releases
-    (0.0 = flood: everything at t=0). ``due_date`` is the common delivery
-    deadline used for deliveryReliability. ``batch_size`` is the transfer batch
-    (units accumulated at a station before moving downstream together).
+    (0.0 = flood: everything at t=0). ``delivery_window`` is the promised lead
+    time (target time-in-system) per order used for deliveryReliability — a
+    flow target, not an absolute clock deadline. ``batch_size`` is the transfer
+    batch (units accumulated at a station before moving downstream together).
     ``wip_cap`` optionally caps orders in process (CONWIP-like); None = no cap.
     """
 
     stations: tuple[StationSpec, ...]
     order_count: int
-    due_date: float
+    delivery_window: float
     seed: int
     batch_size: int = 1
     release_policy: ReleasePolicy = ReleasePolicy.PUSH
@@ -81,8 +82,8 @@ class LineConfig:
             raise ValueError("batch_size must be > 0")
         if self.release_interval < 0:
             raise ValueError("release_interval must be >= 0")
-        if self.due_date <= 0:
-            raise ValueError("due_date must be > 0")
+        if self.delivery_window <= 0:
+            raise ValueError("delivery_window must be > 0")
         if self.wip_cap is not None and self.wip_cap <= 0:
             raise ValueError("wip_cap must be > 0 when set")
 
@@ -112,7 +113,6 @@ class Order:
             raise ValueError(f"order {self.order_id} not yet completed")
         return self.completion_time - self.release_time
 
-    def is_on_time(self, due_date: float) -> bool:
-        if self.completion_time is None:
-            raise ValueError(f"order {self.order_id} not yet completed")
-        return self.completion_time <= due_date
+    def is_on_time(self, delivery_window: float) -> bool:
+        """On time when the realized lead time meets the promised window."""
+        return self.lead_time <= delivery_window
