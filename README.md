@@ -5,12 +5,13 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.2 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.3 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
-> **v0.2:** composite skor (throughput hariç) · tek senaryo + 2 akış kaldıracı ·
-> `POST /api/simulate` · hero flow-time debrief UI.
+> **v0.3:** takt tabanlı talep programı + teslim-kapılı skor
+> (`skor = akış kalitesi × teslim güvenilirliği`) — ne aşırı üretim ne de
+> hattı starve etmek kazandırır; yalnız takt'a dengeli akış kazanır.
 
 ## Mimari
 
@@ -23,7 +24,8 @@ adapters/  →  application/  →  domain/
 - `backend/app/domain/simulation/` — **saf, framework-süz** ayrık-olay
   simülasyonu (DES). Tohumlu ve deterministik: aynı `seed` + config → bit-aynı
   sonuç.
-- `backend/app/domain/scoring/` — composite skor (saf; throughput hariç).
+- `backend/app/domain/scoring/` — composite skor (saf): akış kalitesi ×
+  teslim güvenilirliği (kapı); throughput terim değil.
 - `backend/app/domain/scenario/` — tek `baseline` senaryo + 2 kaldıraç.
 - `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
   (engine + metrics + score'u birleştiren ince orkestrasyon).
@@ -68,13 +70,19 @@ from app.domain.scenario.scenario import baseline_scenario
 lean = run_scenario(
     RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=6.0)
 )
-print(round(lean.score.composite, 1))   # ~82 / 100
+print(round(lean.score.composite, 1))    # ~74 / 100
 
-# Aşırı üretim (parti=5, flood): skor çöker — çıktı ödüllenmez, WIP şişer
+# Aşırı üretim (parti=5, flood): akış çöker — çıktı ödüllenmez, WIP şişer
 push = run_scenario(
     RunScenarioCommand(scenario=baseline_scenario(), batch_size=5, release_interval=0.0)
 )
-print(round(push.score.composite, 1))   # ~4 / 100
+print(round(push.score.composite, 1))    # ~0 / 100
+
+# Hattı starve etmek (parti=1, salım=12): akış kusursuz ama talebe yetişmez
+starve = run_scenario(
+    RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=12.0)
+)
+print(round(starve.score.composite, 1))  # ~7 / 100 — teslim kapısı düşürür
 ```
 
 Ham DES motoruna `LineConfig` + `run_simulation` ile de erişilebilir
@@ -124,7 +132,7 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.3 adayı)
+## Sıradaki dilim (v0.4 adayı)
 
-Talep/takt kısıtı (aşırı-yavaş salımın dejenere kazancını kapatmak) + kredi
-sistemi + zengin debrief (CFD) + koçluk. Kapsam bayrakları için `CLAUDE.md`.
+Kredi sistemi (kaldıraç maliyeti) + zengin debrief (CFD/kümülatif akış) +
+koçluk (FATİH USTA) + çoklu senaryo. Kapsam bayrakları için `CLAUDE.md`.

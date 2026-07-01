@@ -25,11 +25,14 @@ kararlar bu çerçevenin dışına **insan onayı olmadan** çıkmaz.
   (akış verimliliği) ve **delivery reliability** (teslim güvenilirliği) üzerinden
   gelir — **throughput (çıktı) DEĞİL**. Çok üretmek kazandırmaz; hızlı-dengeli
   akış kazanır.
-- v0.2'de **composite skor** eklendi: 3 pilar (lead-time · flow efficiency ·
-  delivery) ağırlıklı ortalama × 100; **throughput terim DEĞİL**. "Throughput
-  ödüllenmez / aşırı üretim WIP'i şişirir" gerçeği hem motor değişmezlerinde
-  (`tests/test_simulation_invariants.py`) hem skorda
-  (`tests/test_scoring.py`) **testlerle korunur**.
+- **Skor (v0.2→v0.3):** akış kalitesi (lead-time + flow efficiency, ağırlıklı)
+  **× teslim güvenilirliği** (kapı/gate): `composite = 100 · flow_quality ·
+  deliveryReliability`. Talep **takt** temposunda gelir; sipariş k'nın vadesi
+  `k·takt + delivery_window`. **Throughput terim DEĞİL.** Aşırı üretim akış
+  kalitesini düşürür; aşırı-yavaş salım (starving) teslim kapısını düşürür —
+  ikisi de ödül değil, yalnız takt'a-akış kazanır. Korumalar:
+  `tests/test_scoring.py`, `tests/test_demand_takt.py`,
+  `tests/test_simulation_invariants.py`.
 
 ## Mimari (kilitli — Arena-Plan Faz 3)
 
@@ -113,14 +116,16 @@ Kurulum / çalıştırma / test / deploy → `README.md`.
 
 ## Durum ve kapsam bayrakları
 
-**v0.2'de yapıldı:** composite skor (throughput hariç) · tek `baseline` senaryo +
-2 akış kaldıracı (`batch_size`, `release_interval`) · durumsuz HTTP API
-(`GET /api/scenario`, `POST /api/simulate`) · hero flow-time debrief UI.
+**v0.2'de yapıldı:** composite skor · tek `baseline` senaryo + 2 akış kaldıracı
+(`batch_size`, `release_interval`) · durumsuz HTTP API · hero flow-time debrief UI.
+
+**v0.3'te yapıldı:** takt tabanlı talep programı (`due_k = k·takt + window`) +
+teslim-kapılı skor (gate) → aşırı-yavaş salımın dejenere "hattı aç bırak"
+kazancı **kapandı**; debrief şeridi talebe-yetişme durumuna göre renklenir.
 
 **Hâlâ YOK — sonraki dilimler:**
-- Talep/takt kısıtı (aşırı-yavaş salımın dejenere "hattı aç bırak" kazancını
-  kapatmak) + kredi sistemi + çoklu senaryo/zorluk → v0.3+.
-- Zengin debrief (CFD/kümülatif akış), koçluk (FATİH USTA), skor tablosu → v0.3+.
+- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.4+.
+- Zengin debrief (CFD/kümülatif akış), koçluk (FATİH USTA), skor tablosu → v0.4+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.
