@@ -12,6 +12,7 @@ export interface ScenarioDescriptor {
   scenario_id: string;
   order_count: number;
   delivery_window: number;
+  takt_time: number;
   ideal_lead_time: number;
   levers: LeverDescriptor[];
 }
@@ -43,6 +44,7 @@ export interface SimulateResponse {
   score: ScoreDto;
   metrics: MetricsDto;
   lead_times: number[];
+  on_time: boolean[];
   value_added_mean: number;
   waiting_mean: number;
   applied_batch_size: number;

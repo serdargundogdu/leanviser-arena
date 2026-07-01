@@ -4,24 +4,28 @@ interface Props {
   valueAddedMean: number;
   waitingMean: number;
   leadTimes: number[];
-  deliveryWindow: number;
+  onTime: boolean[];
+  taktTime: number;
   metrics: MetricsDto;
 }
 
 // Hero flow-time debrief: makes waiting visible (value-adding vs waiting share
-// of lead time) and shows each order's lead time against the delivery window.
+// of lead time) and shows each order's lead time colored by whether it met the
+// takt-paced demand schedule. Short-but-late bars are the tell-tale of starving
+// the line: fast per order, yet unable to keep up with demand.
 export function FlowTimeDebrief({
   valueAddedMean,
   waitingMean,
   leadTimes,
-  deliveryWindow,
+  onTime,
+  taktTime,
   metrics,
 }: Props) {
   const total = valueAddedMean + waitingMean;
   const valueAddedPct = total > 0 ? (valueAddedMean / total) * 100 : 0;
   const waitingPct = 100 - valueAddedPct;
-  const maxLead = Math.max(...leadTimes, deliveryWindow);
-  const windowY = 100 - (deliveryWindow / maxLead) * 100;
+  const maxLead = Math.max(...leadTimes, 1);
+  const deliveryPct = Math.round(metrics.delivery_reliability * 100);
 
   return (
     <div className="debrief">
@@ -39,21 +43,22 @@ export function FlowTimeDebrief({
         </div>
       </div>
       <p className="debrief__fe">
-        Akış verimliliği <strong>%{Math.round(valueAddedPct)}</strong> — kalan
-        %{Math.round(waitingPct)} beklemede geçiyor (israf).
+        Akış verimliliği <strong>%{Math.round(valueAddedPct)}</strong> — kalan %
+        {Math.round(waitingPct)} beklemede geçiyor (israf).
       </p>
 
-      <h4 className="debrief__striptitle">Sipariş bazında temin süresi</h4>
+      <h4 className="debrief__striptitle">
+        Sipariş bazında temin süresi · talep temposu (takt) {taktTime}
+      </h4>
       <svg
         className="strip"
         viewBox={`0 0 ${leadTimes.length} 100`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Sipariş temin süreleri ve teslim penceresi"
+        aria-label="Sipariş temin süreleri; renk talebe yetişme durumunu gösterir"
       >
         {leadTimes.map((leadTime, index) => {
           const height = (leadTime / maxLead) * 100;
-          const onTime = leadTime <= deliveryWindow;
           return (
             <rect
               key={index}
@@ -61,36 +66,25 @@ export function FlowTimeDebrief({
               y={100 - height}
               width={0.88}
               height={height}
-              className={onTime ? "strip__ok" : "strip__late"}
+              className={onTime[index] ? "strip__ok" : "strip__late"}
             />
           );
         })}
-        <line
-          x1={0}
-          x2={leadTimes.length}
-          y1={windowY}
-          y2={windowY}
-          className="strip__window"
-        />
       </svg>
 
       <div className="strip__legend">
         <span>
-          <i className="dot dot--ok" /> pencerede (%
-          {Math.round(metrics.delivery_reliability * 100)})
+          <i className="dot dot--ok" /> talebe yetişti (%{deliveryPct})
         </span>
         <span>
-          <i className="dot dot--late" /> geç
-        </span>
-        <span>
-          <i className="dash" /> hedef {deliveryWindow}
+          <i className="dot dot--late" /> geç kaldı
         </span>
       </div>
 
       <div className="debrief__note">
-        Çıktı hızı (throughput): {metrics.throughput.toFixed(3)} ·
-        ortalama WIP: {metrics.average_wip.toFixed(1)} —{" "}
-        <em>çıktı skoru artırmaz</em>.
+        Çıktı hızı (throughput): {metrics.throughput.toFixed(3)} · ortalama WIP:{" "}
+        {metrics.average_wip.toFixed(1)} — <em>çıktı skoru artırmaz</em>. Skor,
+        akış kalitesinin talebe teslim edildiği oranla çarpımıdır.
       </div>
     </div>
   );

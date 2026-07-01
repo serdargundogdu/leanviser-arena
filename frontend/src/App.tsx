@@ -59,7 +59,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.2</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.3</p>
       </header>
 
       {error && (
@@ -74,8 +74,9 @@ export function App() {
           <div className="panel">
             <h2 className="panel__title">Kaldıraçlar</h2>
             <p className="panel__hint">
-              Hedef temin süresi ≤ {scenario.delivery_window} · ideal (tek-parça){" "}
-              {scenario.ideal_lead_time} · {scenario.order_count} sipariş
+              Talep temposu (takt) {scenario.takt_time} · hedef temin ≤{" "}
+              {scenario.delivery_window} · ideal {scenario.ideal_lead_time} ·{" "}
+              {scenario.order_count} sipariş
             </p>
             <LeverControls
               levers={scenario.levers}
@@ -98,7 +99,8 @@ export function App() {
                 valueAddedMean={result.value_added_mean}
                 waitingMean={result.waiting_mean}
                 leadTimes={result.lead_times}
-                deliveryWindow={scenario.delivery_window}
+                onTime={result.on_time}
+                taktTime={scenario.takt_time}
                 metrics={result.metrics}
               />
             )}
