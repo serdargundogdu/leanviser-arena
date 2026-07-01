@@ -107,8 +107,8 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 ## Depo yapısı
 
 ```
-backend/    FastAPI + saf DES/scoring domain (domain/application/adapters/shared)
-frontend/   Vite + React + TS (2D debrief UI: kaldıraçlar + skor + flow-time)
+backend/    FastAPI + saf domain (simulation/scoring/scenario/coaching) + application/adapters
+frontend/   Vite + React + TS (2D debrief: kaldıraçlar + skor + koçluk + flow-time)
 .github/    CI (ruff+pytest+build) · deploy (Cloud Run iskeleti)
 ```
 
@@ -123,9 +123,13 @@ Kurulum / çalıştırma / test / deploy → `README.md`.
 teslim-kapılı skor (gate) → aşırı-yavaş salımın dejenere "hattı aç bırak"
 kazancı **kapandı**; debrief şeridi talebe-yetişme durumuna göre renklenir.
 
+**v0.4'te yapıldı:** kural-tabanlı koçluk (`domain/coaching`) — skoru açıklayan,
+kaldıraca-bağlı dil-nötr `Insight` kodları (UI Türkçe'ye çevirir); debrief'te
+"FATİH USTA diyor ki" paneli. Koçluk yalnız yorumlar, skoru değiştirmez.
+
 **Hâlâ YOK — sonraki dilimler:**
-- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.4+.
-- Zengin debrief (CFD/kümülatif akış), koçluk (FATİH USTA), skor tablosu → v0.4+.
+- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.5+.
+- Zengin debrief (CFD/kümülatif akış), skor tablosu → v0.5+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.
