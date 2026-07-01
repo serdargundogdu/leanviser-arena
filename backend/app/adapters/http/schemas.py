@@ -49,9 +49,15 @@ class MetricsDto(BaseModel):
     makespan: float
 
 
+class InsightDto(BaseModel):
+    code: str
+    severity: str
+
+
 class SimulateResponse(BaseModel):
     score: ScoreDto
     metrics: MetricsDto
+    insights: list[InsightDto]
     lead_times: list[float]
     on_time: list[bool]
     value_added_mean: float

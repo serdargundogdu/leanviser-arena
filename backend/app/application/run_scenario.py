@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.domain.coaching.coach import Insight, diagnose
 from app.domain.scenario.scenario import Scenario
 from app.domain.scoring.score import Score, compute_score
 from app.domain.simulation.engine import simulate
@@ -40,6 +41,7 @@ class DebriefResult:
 
     metrics: SimulationMetrics
     score: Score
+    insights: tuple[Insight, ...]
     lead_times: tuple[float, ...]
     on_time: tuple[bool, ...]
     value_added_mean: float
@@ -54,6 +56,15 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
+    insights = tuple(
+        diagnose(
+            metrics=metrics,
+            score=score,
+            batch_size=config.batch_size,
+            release_interval=config.release_interval,
+            takt_time=config.takt_time,
+        )
+    )
 
     order_count = len(log.orders)
     value_added_mean = sum(o.value_added_time for o in log.orders) / order_count
@@ -61,6 +72,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     return DebriefResult(
         metrics=metrics,
         score=score,
+        insights=insights,
         lead_times=tuple(o.lead_time for o in log.orders),
         on_time=tuple(o.is_on_time(config.takt_time, config.delivery_window) for o in log.orders),
         value_added_mean=value_added_mean,

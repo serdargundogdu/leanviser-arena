@@ -11,6 +11,7 @@ from dataclasses import asdict
 from fastapi import APIRouter
 
 from app.adapters.http.schemas import (
+    InsightDto,
     LeverDescriptor,
     MetricsDto,
     ScenarioDescriptor,
@@ -60,6 +61,10 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
     return SimulateResponse(
         score=ScoreDto(**asdict(result.score)),
         metrics=MetricsDto(**asdict(result.metrics)),
+        insights=[
+            InsightDto(code=insight.code.value, severity=insight.severity.value)
+            for insight in result.insights
+        ],
         lead_times=list(result.lead_times),
         on_time=list(result.on_time),
         value_added_mean=result.value_added_mean,
