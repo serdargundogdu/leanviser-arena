@@ -25,9 +25,11 @@ kararlar bu çerçevenin dışına **insan onayı olmadan** çıkmaz.
   (akış verimliliği) ve **delivery reliability** (teslim güvenilirliği) üzerinden
   gelir — **throughput (çıktı) DEĞİL**. Çok üretmek kazandırmaz; hızlı-dengeli
   akış kazanır.
-- v0.1'de composite skor YOK; ama motor bu metrikleri üretir ve "throughput
-  ödüllenmez / aşırı üretim WIP'i şişirir" gerçeği **testlerle korunur**
-  (`tests/test_simulation_invariants.py`).
+- v0.2'de **composite skor** eklendi: 3 pilar (lead-time · flow efficiency ·
+  delivery) ağırlıklı ortalama × 100; **throughput terim DEĞİL**. "Throughput
+  ödüllenmez / aşırı üretim WIP'i şişirir" gerçeği hem motor değişmezlerinde
+  (`tests/test_simulation_invariants.py`) hem skorda
+  (`tests/test_scoring.py`) **testlerle korunur**.
 
 ## Mimari (kilitli — Arena-Plan Faz 3)
 
@@ -49,8 +51,9 @@ kararlar bu çerçevenin dışına **insan onayı olmadan** çıkmaz.
 - **Backend:** Python 3.12 + FastAPI. Test: pytest. Lint/format: ruff.
   Bağımlılık: **uv**. Domain katmanı **yalnız stdlib** kullanır (numpy yok) →
   tohumlu `random.Random(seed)` ile bit-aynı tekrar.
-- **Frontend:** React + Vite + TypeScript — v0.1'de yalnız 2D placeholder lobi.
-  **Three.js EKLENMEZ** (3D ertelendi).
+- **Frontend:** React + Vite + TypeScript — v0.2'de 2D debrief UI (2 kaldıraç
+  + skor kartı + hero flow-time röntgeni). Dev'de `/api` Vite proxy ile
+  backend'e gider. **Three.js EKLENMEZ** (3D ertelendi).
 - **Dağıtım:** GCP Cloud Run + GitHub Actions CI/CD; backend `Dockerfile`.
 
 ## Dil kuralı
@@ -85,6 +88,7 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 | Süreçteki iş | `WIP` (`workInProcess`) |
 | Çıktı hızı | `throughput` |
 | Teslim güvenilirliği | `deliveryReliability` |
+| Teslim penceresi | `deliveryWindow` |
 | Çevrim süresi | `cycleTime` |
 | Takt süresi | `taktTime` |
 | Parti | `batchSize` |
@@ -100,17 +104,23 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 ## Depo yapısı
 
 ```
-backend/    FastAPI + saf DES domain (domain/application/adapters/shared)
-frontend/   Vite + React + TS (2D placeholder lobi)
+backend/    FastAPI + saf DES/scoring domain (domain/application/adapters/shared)
+frontend/   Vite + React + TS (2D debrief UI: kaldıraçlar + skor + flow-time)
 .github/    CI (ruff+pytest+build) · deploy (Cloud Run iskeleti)
 ```
 
 Kurulum / çalıştırma / test / deploy → `README.md`.
 
-## Kapsam bayrakları (v0.1'de YOK — sonraki dilimler)
+## Durum ve kapsam bayrakları
 
-- Composite Arena Skoru + kredi/kaldıraç UI + çoklu senaryo → v0.2+.
-- Debrief grafikleri, koçluk, lobi/skor tablosu işlevi → v0.2+.
+**v0.2'de yapıldı:** composite skor (throughput hariç) · tek `baseline` senaryo +
+2 akış kaldıracı (`batch_size`, `release_interval`) · durumsuz HTTP API
+(`GET /api/scenario`, `POST /api/simulate`) · hero flow-time debrief UI.
+
+**Hâlâ YOK — sonraki dilimler:**
+- Talep/takt kısıtı (aşırı-yavaş salımın dejenere "hattı aç bırak" kazancını
+  kapatmak) + kredi sistemi + çoklu senaryo/zorluk → v0.3+.
+- Zengin debrief (CFD/kümülatif akış), koçluk (FATİH USTA), skor tablosu → v0.3+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.

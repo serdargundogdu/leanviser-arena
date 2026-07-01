@@ -5,9 +5,12 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.1 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.2 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
+>
+> **v0.2:** composite skor (throughput hariç) · tek senaryo + 2 akış kaldıracı ·
+> `POST /api/simulate` · hero flow-time debrief UI.
 
 ## Mimari
 
@@ -20,10 +23,14 @@ adapters/  →  application/  →  domain/
 - `backend/app/domain/simulation/` — **saf, framework-süz** ayrık-olay
   simülasyonu (DES). Tohumlu ve deterministik: aynı `seed` + config → bit-aynı
   sonuç.
-- `backend/app/application/` — `RunSimulation` use-case (engine + metrics'i
-  birleştiren ince orkestrasyon).
-- `backend/app/adapters/` — FastAPI (v0.1: yalnız `GET /health`), ileride DB.
-- `frontend/` — Vite + React + TS, 2D placeholder lobi (3D yok).
+- `backend/app/domain/scoring/` — composite skor (saf; throughput hariç).
+- `backend/app/domain/scenario/` — tek `baseline` senaryo + 2 kaldıraç.
+- `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
+  (engine + metrics + score'u birleştiren ince orkestrasyon).
+- `backend/app/adapters/http/` — FastAPI: `GET /health`, `GET /api/scenario`,
+  `POST /api/simulate`. Kalıcılık/auth YOK (ertelendi).
+- `frontend/` — Vite + React + TS, 2D debrief UI (kaldıraçlar + skor kartı +
+  flow-time röntgeni). 3D yok.
 
 ## Gereksinimler
 
@@ -47,39 +54,54 @@ uv run uvicorn app.main:app --reload
 uv run ruff check .
 uv run ruff format .
 
-# Testler (health + determinizm + değişmezler)
+# Testler (health + determinizm + değişmezler + skor + senaryo + API)
 uv run pytest
 ```
 
-### Simülasyon çekirdeği (hızlı deneme)
+### Skor motoru (hızlı deneme)
 
 ```python
-from app.application.run_simulation import RunSimulationCommand, run_simulation
-from app.domain.simulation.line import LineConfig, StationSpec
+from app.application.run_scenario import RunScenarioCommand, run_scenario
+from app.domain.scenario.scenario import baseline_scenario
 
-config = LineConfig(
-    stations=(
-        StationSpec("cut", cycle_time_mean=4.0, cycle_time_variance=1.0),
-        StationSpec("weld", cycle_time_mean=6.0, cycle_time_variance=2.0),
-        StationSpec("paint", cycle_time_mean=5.0, cycle_time_variance=1.5),
-    ),
-    order_count=60,
-    due_date=800.0,
-    seed=7,
-    batch_size=1,          # tek-parça akış; büyütünce temin süresi artar
-    release_interval=6.0,  # 0.0 = flood (aşırı üretim → WIP şişer)
+# Kaldıraçlar: parti=1 (tek-parça akış), salım=6 (~takt/dengeli)
+lean = run_scenario(
+    RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=6.0)
 )
-metrics = run_simulation(RunSimulationCommand(config=config))
-print(metrics)  # leadTime medyan/ortalama, WIP, flowEfficiency, throughput, deliveryReliability
+print(round(lean.score.composite, 1))   # ~82 / 100
+
+# Aşırı üretim (parti=5, flood): skor çöker — çıktı ödüllenmez, WIP şişer
+push = run_scenario(
+    RunScenarioCommand(scenario=baseline_scenario(), batch_size=5, release_interval=0.0)
+)
+print(round(push.score.composite, 1))   # ~4 / 100
 ```
+
+Ham DES motoruna `LineConfig` + `run_simulation` ile de erişilebilir
+(`delivery_window` = hedef temin süresi, mutlak tarih değil).
 
 ## Frontend — kurulum, çalıştırma, build
 
 ```bash
 cd frontend
 npm install
-npm run dev      # geliştirme sunucusu
+npm run dev      # geliştirme sunucusu (http://localhost:5173)
 npm run build    # üretim derlemesi (tsc --noEmit && vite build)
+```
+
+> Debrief UI, `/api`'yi Vite proxy ile `http://localhost:8000`'e yönlendirir;
+> bu yüzden **backend'in :8000'de çalışıyor olması gerekir**
+> (`uv run uvicorn app.main:app --port 8000`).
+
+## Tam yığın (backend + frontend)
+
+İki terminal: backend'i `:8000`, frontend'i `:5173` çalıştır, tarayıcıda
+`http://localhost:5173` aç. API'yi doğrudan da deneyebilirsin:
+
+```bash
+curl -X POST http://localhost:8000/api/simulate \
+  -H 'Content-Type: application/json' \
+  -d '{"batch_size":1,"release_interval":6.0}'
 ```
 
 ## Docker (backend)
@@ -102,7 +124,7 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.2 adayı)
+## Sıradaki dilim (v0.3 adayı)
 
-Tek senaryo + push tabanı + 2 kaldıraç + **composite skor** + hero flow-time
-debrief grafiği. Kapsam bayrakları için `CLAUDE.md`.
+Talep/takt kısıtı (aşırı-yavaş salımın dejenere kazancını kapatmak) + kredi
+sistemi + zengin debrief (CFD) + koçluk. Kapsam bayrakları için `CLAUDE.md`.
