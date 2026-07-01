@@ -41,6 +41,7 @@ class DebriefResult:
     metrics: SimulationMetrics
     score: Score
     lead_times: tuple[float, ...]
+    on_time: tuple[bool, ...]
     value_added_mean: float
     waiting_mean: float
     applied_batch_size: int
@@ -51,7 +52,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     scenario = command.scenario
     config = scenario.build_config(command.batch_size, command.release_interval)
     log = simulate(config)
-    metrics = compute_metrics(log, config.delivery_window)
+    metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
 
     order_count = len(log.orders)
@@ -61,6 +62,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         metrics=metrics,
         score=score,
         lead_times=tuple(o.lead_time for o in log.orders),
+        on_time=tuple(o.is_on_time(config.takt_time, config.delivery_window) for o in log.orders),
         value_added_mean=value_added_mean,
         waiting_mean=waiting_mean,
         applied_batch_size=config.batch_size,

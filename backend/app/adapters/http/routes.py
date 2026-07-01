@@ -32,6 +32,7 @@ def get_scenario() -> ScenarioDescriptor:
         scenario_id=scenario.scenario_id,
         order_count=scenario.order_count,
         delivery_window=scenario.delivery_window,
+        takt_time=scenario.takt_time,
         ideal_lead_time=scenario.ideal_lead_time,
         levers=[
             LeverDescriptor(
@@ -60,6 +61,7 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         score=ScoreDto(**asdict(result.score)),
         metrics=MetricsDto(**asdict(result.metrics)),
         lead_times=list(result.lead_times),
+        on_time=list(result.on_time),
         value_added_mean=result.value_added_mean,
         waiting_mean=result.waiting_mean,
         applied_batch_size=result.applied_batch_size,

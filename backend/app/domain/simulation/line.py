@@ -57,16 +57,19 @@ class LineConfig:
 
     ``stations`` is ordered upstream→downstream. ``order_count`` orders are
     released per ``release_policy``; ``release_interval`` paces PUSH releases
-    (0.0 = flood: everything at t=0). ``delivery_window`` is the promised lead
-    time (target time-in-system) per order used for deliveryReliability — a
-    flow target, not an absolute clock deadline. ``batch_size`` is the transfer
-    batch (units accumulated at a station before moving downstream together).
-    ``wip_cap`` optionally caps orders in process (CONWIP-like); None = no cap.
+    (0.0 = flood: everything at t=0). Delivery is judged against a takt-paced
+    DEMAND schedule: order ``k`` is due at ``k * takt_time + delivery_window``
+    (``takt_time`` = customer demand cadence, ``delivery_window`` = allowed lead
+    time). Releasing slower than takt cannot keep up with demand.
+    ``batch_size`` is the transfer batch (units accumulated at a station before
+    moving downstream together). ``wip_cap`` optionally caps orders in process
+    (CONWIP-like); None = no cap.
     """
 
     stations: tuple[StationSpec, ...]
     order_count: int
     delivery_window: float
+    takt_time: float
     seed: int
     batch_size: int = 1
     release_policy: ReleasePolicy = ReleasePolicy.PUSH
@@ -84,6 +87,8 @@ class LineConfig:
             raise ValueError("release_interval must be >= 0")
         if self.delivery_window <= 0:
             raise ValueError("delivery_window must be > 0")
+        if self.takt_time <= 0:
+            raise ValueError("takt_time must be > 0")
         if self.wip_cap is not None and self.wip_cap <= 0:
             raise ValueError("wip_cap must be > 0 when set")
 
@@ -113,6 +118,14 @@ class Order:
             raise ValueError(f"order {self.order_id} not yet completed")
         return self.completion_time - self.release_time
 
-    def is_on_time(self, delivery_window: float) -> bool:
-        """On time when the realized lead time meets the promised window."""
-        return self.lead_time <= delivery_window
+    def is_on_time(self, takt_time: float, delivery_window: float) -> bool:
+        """On time when finished by this order's takt-paced demand due date.
+
+        Order ``k``'s demand due date is ``k * takt_time + delivery_window`` —
+        fixed by the customer's cadence, independent of when it was released. So
+        releasing slower than takt (starving the line) misses the schedule.
+        """
+        if self.completion_time is None:
+            raise ValueError(f"order {self.order_id} not yet completed")
+        due_date = self.order_id * takt_time + delivery_window
+        return self.completion_time <= due_date

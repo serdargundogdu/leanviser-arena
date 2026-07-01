@@ -42,6 +42,7 @@ class Scenario:
     base_stations: tuple[StationSpec, ...]
     order_count: int
     delivery_window: float
+    takt_time: float
     seed: int
     batch_size_lever: Lever
     release_interval_lever: Lever
@@ -63,6 +64,7 @@ class Scenario:
             stations=self.base_stations,
             order_count=self.order_count,
             delivery_window=self.delivery_window,
+            takt_time=self.takt_time,
             seed=self.seed,
             batch_size=int(round(self.batch_size_lever.clamp(batch_size))),
             release_interval=self.release_interval_lever.clamp(release_interval),
@@ -83,10 +85,12 @@ def baseline_scenario() -> Scenario:
         ),
         order_count=60,
         delivery_window=35.0,
+        takt_time=6.0,
         seed=7,
         batch_size_lever=Lever(key=LEVER_BATCH_SIZE, minimum=1, maximum=20, step=1, default=5),
         release_interval_lever=Lever(
             key=LEVER_RELEASE_INTERVAL, minimum=0.0, maximum=12.0, step=0.5, default=0.0
         ),
-        weights=ScoreWeights(lead_time=0.4, flow_efficiency=0.3, delivery_reliability=0.3),
+        # Flow-quality weights (sum to 1); delivery reliability gates the score.
+        weights=ScoreWeights(lead_time=0.57, flow_efficiency=0.43),
     )

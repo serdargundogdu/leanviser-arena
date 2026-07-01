@@ -12,6 +12,7 @@ def test_get_scenario() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["scenario_id"] == "baseline"
+    assert body["takt_time"] > 0
     keys = {lever["key"] for lever in body["levers"]}
     assert keys == {"batch_size", "release_interval"}
 
@@ -22,6 +23,7 @@ def test_post_simulate_with_defaults() -> None:
     body = response.json()
     assert 0.0 <= body["score"]["composite"] <= 100.0
     assert len(body["lead_times"]) == body["metrics"]["order_count"]
+    assert len(body["on_time"]) == body["metrics"]["order_count"]
 
 
 def test_lean_flow_scores_higher_via_api() -> None:

@@ -34,6 +34,7 @@ def test_build_config_applies_lever_values() -> None:
     assert config.seed == scenario.seed
     assert config.stations == scenario.base_stations
     assert config.delivery_window == scenario.delivery_window
+    assert config.takt_time == scenario.takt_time
 
 
 def test_build_config_clamps_out_of_range_input() -> None:

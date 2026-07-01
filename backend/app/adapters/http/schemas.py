@@ -21,6 +21,7 @@ class ScenarioDescriptor(BaseModel):
     scenario_id: str
     order_count: int
     delivery_window: float
+    takt_time: float
     ideal_lead_time: float
     levers: list[LeverDescriptor]
 
@@ -52,6 +53,7 @@ class SimulateResponse(BaseModel):
     score: ScoreDto
     metrics: MetricsDto
     lead_times: list[float]
+    on_time: list[bool]
     value_added_mean: float
     waiting_mean: float
     applied_batch_size: int

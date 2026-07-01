@@ -7,7 +7,7 @@ import pytest
 from app.domain.scoring.score import Score, ScoreWeights, compute_score
 from app.domain.simulation.metrics import SimulationMetrics
 
-WEIGHTS = ScoreWeights(lead_time=0.4, flow_efficiency=0.3, delivery_reliability=0.3)
+WEIGHTS = ScoreWeights(lead_time=0.6, flow_efficiency=0.4)
 IDEAL_LEAD_TIME = 15.0
 
 
@@ -45,7 +45,7 @@ def test_score_within_bounds() -> None:
 
 def test_weights_must_sum_to_one() -> None:
     with pytest.raises(ValueError, match="sum to 1.0"):
-        ScoreWeights(lead_time=0.5, flow_efficiency=0.3, delivery_reliability=0.3)
+        ScoreWeights(lead_time=0.5, flow_efficiency=0.3)
 
 
 def test_throughput_is_not_a_term() -> None:
@@ -59,8 +59,9 @@ def test_throughput_is_not_a_term() -> None:
 
 
 def test_better_flow_scores_higher() -> None:
+    # Delivery held constant so the comparison is purely about flow quality.
     good = _metrics(lead_median=18.0, flow_efficiency=0.8, delivery=1.0, throughput=0.16)
-    bad = _metrics(lead_median=120.0, flow_efficiency=0.12, delivery=0.3, throughput=0.16)
+    bad = _metrics(lead_median=120.0, flow_efficiency=0.12, delivery=1.0, throughput=0.16)
     assert (
         compute_score(good, IDEAL_LEAD_TIME, WEIGHTS).composite
         > compute_score(bad, IDEAL_LEAD_TIME, WEIGHTS).composite
@@ -75,3 +76,13 @@ def test_lead_time_score_is_capped_at_one() -> None:
         WEIGHTS,
     )
     assert score.lead_time_score == 1.0
+
+
+def test_delivery_gates_the_score() -> None:
+    # Identical flow quality; delivery multiplies. Halving delivery halves the
+    # composite — this is the gate that closes the line-starving strategy.
+    full = _metrics(lead_median=18.0, flow_efficiency=0.8, delivery=1.0, throughput=0.16)
+    half = _metrics(lead_median=18.0, flow_efficiency=0.8, delivery=0.5, throughput=0.16)
+    full_score = compute_score(full, IDEAL_LEAD_TIME, WEIGHTS)
+    half_score = compute_score(half, IDEAL_LEAD_TIME, WEIGHTS)
+    assert half_score.composite == pytest.approx(full_score.composite * 0.5)

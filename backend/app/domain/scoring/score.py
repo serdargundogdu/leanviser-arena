@@ -1,14 +1,22 @@
 """Composite Arena score — the reward thesis made executable. Pure functions.
 
-The score rewards FLOW, not output. Three pillars, each normalized to [0, 1]:
+The score rewards FLOW, gated by demand. Three sub-scores, each in [0, 1]:
 
   * lead time      — ideal (one-piece-flow floor) / realized median, capped at 1;
   * flow efficiency — value-added time / lead time (already in (0, 1]);
-  * delivery       — share of orders inside the promised delivery window.
+  * delivery       — share of orders meeting the takt-paced demand schedule.
 
-They are combined by a weighted mean and scaled to [0, 100]. Throughput is NOT a
-term: overproduction raises WIP and lead time, which LOWERS the score — it can
-never raise it. This property is guarded by ``tests/test_scoring.py``.
+Flow quality is the weighted mean of the first two; the composite is then
+
+    composite = 100 * flow_quality * delivery_reliability
+
+so delivery GATES the score: flowing beautifully counts only to the extent you
+delivered to demand. This closes the degenerate strategy of starving the line
+(near-perfect lead time / flow efficiency, but missed demand → delivery → 0).
+
+Throughput is NOT a term. Overproduction raises WIP and lead time (lowering
+flow quality); starving misses demand (lowering the gate). Neither is rewarded.
+Guarded by ``tests/test_scoring.py`` and ``tests/test_demand_takt.py``.
 """
 
 from __future__ import annotations
@@ -24,16 +32,19 @@ def _clamp01(value: float) -> float:
 
 @dataclass(frozen=True)
 class ScoreWeights:
-    """Weights for the three composite pillars; must sum to 1.0."""
+    """Weights for the two flow-quality pillars; must sum to 1.0.
+
+    Delivery reliability is not weighted here — it gates the composite as a
+    multiplier (see ``compute_score``).
+    """
 
     lead_time: float
     flow_efficiency: float
-    delivery_reliability: float
 
     def __post_init__(self) -> None:
-        total = self.lead_time + self.flow_efficiency + self.delivery_reliability
+        total = self.lead_time + self.flow_efficiency
         if abs(total - 1.0) > 1e-9:
-            raise ValueError("score weights must sum to 1.0")
+            raise ValueError("flow-quality weights must sum to 1.0")
 
 
 @dataclass(frozen=True)
@@ -54,16 +65,16 @@ def compute_score(
     """Combine flow metrics into the composite Arena score.
 
     ``ideal_lead_time`` is the theoretical one-piece-flow floor (sum of station
-    cycle-time means); the lead-time pillar rewards approaching it.
+    cycle-time means); the lead-time pillar rewards approaching it. Delivery
+    reliability gates the weighted flow quality.
     """
     lead_time_score = _clamp01(ideal_lead_time / metrics.lead_time_median)
     flow_efficiency_score = _clamp01(metrics.flow_efficiency)
     delivery_score = _clamp01(metrics.delivery_reliability)
-    composite = 100.0 * (
-        weights.lead_time * lead_time_score
-        + weights.flow_efficiency * flow_efficiency_score
-        + weights.delivery_reliability * delivery_score
+    flow_quality = (
+        weights.lead_time * lead_time_score + weights.flow_efficiency * flow_efficiency_score
     )
+    composite = 100.0 * flow_quality * delivery_score
     return Score(
         composite=composite,
         lead_time_score=lead_time_score,
