@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { fetchScenario, runSimulation } from "./api";
+import { CoachingPanel } from "./components/CoachingPanel";
 import { FlowTimeDebrief } from "./components/FlowTimeDebrief";
 import { LeverControls } from "./components/LeverControls";
 import { ScoreCard } from "./components/ScoreCard";
@@ -59,7 +60,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.3</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.4</p>
       </header>
 
       {error && (
@@ -92,6 +93,12 @@ export function App() {
           <div className="panel panel--score">
             {result ? <ScoreCard score={result.score} /> : <p className="muted">Yükleniyor…</p>}
           </div>
+
+          {result && (
+            <div className="panel panel--wide">
+              <CoachingPanel insights={result.insights} />
+            </div>
+          )}
 
           <div className="panel panel--wide">
             {result && (

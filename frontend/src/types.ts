@@ -40,9 +40,15 @@ export interface MetricsDto {
   makespan: number;
 }
 
+export interface Insight {
+  code: string;
+  severity: "good" | "warning" | "critical";
+}
+
 export interface SimulateResponse {
   score: ScoreDto;
   metrics: MetricsDto;
+  insights: Insight[];
   lead_times: number[];
   on_time: boolean[];
   value_added_mean: number;

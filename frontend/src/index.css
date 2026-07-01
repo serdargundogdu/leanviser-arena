@@ -344,6 +344,56 @@ input[type="range"] {
   color: var(--muted);
 }
 
+/* Coaching */
+.coaching__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.coaching__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.coach {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border-left: 4px solid var(--muted);
+  background: var(--card-2);
+}
+
+.coach__title {
+  font-size: 0.9rem;
+}
+
+.coach__tip {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.coach--good {
+  border-left-color: var(--accent);
+}
+
+.coach--warning {
+  border-left-color: var(--late);
+}
+
+.coach--critical {
+  border-left-color: #e0563a;
+}
+
+.coach--critical .coach__title {
+  color: #f0a58a;
+}
+
 .app__footer {
   max-width: 40rem;
   margin: 2rem auto 0;
