@@ -5,15 +5,16 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.4 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.5 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
 > **v0.3:** takt tabanlı talep programı + teslim-kapılı skor
 > (`skor = akış kalitesi × teslim güvenilirliği`) — ne aşırı üretim ne de
 > hattı starve etmek kazandırır; yalnız takt'a dengeli akış kazanır.
-> **v0.4:** kural-tabanlı koçluk ("FATİH USTA diyor ki") — skoru açıklayan,
-> eyleme dönük ipuçları.
+> **v0.4:** kural-tabanlı koçluk ("FATİH USTA diyor ki") — skoru açıklayan ipuçları.
+> **v0.5:** Kümülatif Akış Diyagramı (CFD) — WIP ve temin süresini zaman
+> içinde görselleştirir.
 
 ## Mimari
 
@@ -35,7 +36,7 @@ adapters/  →  application/  →  domain/
 - `backend/app/adapters/http/` — FastAPI: `GET /health`, `GET /api/scenario`,
   `POST /api/simulate`. Kalıcılık/auth YOK (ertelendi).
 - `frontend/` — Vite + React + TS, 2D debrief UI (kaldıraçlar + skor kartı +
-  koçluk paneli + flow-time röntgeni). 3D yok.
+  koçluk paneli + flow-time röntgeni + kümülatif akış diyagramı). 3D yok.
 
 ## Gereksinimler
 
@@ -135,7 +136,7 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.5 adayı)
+## Sıradaki dilim (v0.6 adayı)
 
-Kredi sistemi (kaldıraç maliyeti/bütçe) + zengin debrief (CFD/kümülatif akış) +
-çoklu senaryo. Kapsam bayrakları için `CLAUDE.md`.
+Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo + skor tablosu.
+Kapsam bayrakları için `CLAUDE.md`.

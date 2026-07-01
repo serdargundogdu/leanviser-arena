@@ -108,7 +108,7 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 
 ```
 backend/    FastAPI + saf domain (simulation/scoring/scenario/coaching) + application/adapters
-frontend/   Vite + React + TS (2D debrief: kaldıraçlar + skor + koçluk + flow-time)
+frontend/   Vite + React + TS (2D debrief: kaldıraçlar + skor + koçluk + flow-time + CFD)
 .github/    CI (ruff+pytest+build) · deploy (Cloud Run iskeleti)
 ```
 
@@ -127,9 +127,13 @@ kazancı **kapandı**; debrief şeridi talebe-yetişme durumuna göre renklenir.
 kaldıraca-bağlı dil-nötr `Insight` kodları (UI Türkçe'ye çevirir); debrief'te
 "FATİH USTA diyor ki" paneli. Koçluk yalnız yorumlar, skoru değiştirmez.
 
+**v0.5'te yapıldı:** Kümülatif Akış Diyagramı (CFD) — API sipariş-bazında
+salım/tamamlanma zamanlarını açar; debrief'te salınan vs tamamlanan eğrileri +
+WIP bandı (bağımlılıksız SVG). Additive; motor/skor dokunulmadı.
+
 **Hâlâ YOK — sonraki dilimler:**
-- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.5+.
-- Zengin debrief (CFD/kümülatif akış), skor tablosu → v0.5+.
+- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.6+.
+- Skor tablosu / debrief zenginleştirmeleri → v0.6+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.
