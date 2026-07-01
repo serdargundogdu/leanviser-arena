@@ -9,7 +9,10 @@ later slice; the pure domain engine already lives under
 
 from fastapi import FastAPI
 
-app = FastAPI(title="LeanViser ARENA", version="0.1.0")
+from app.adapters.http.routes import router as arena_router
+
+app = FastAPI(title="LeanViser ARENA", version="0.2.0")
+app.include_router(arena_router)
 
 
 @app.get("/health")
