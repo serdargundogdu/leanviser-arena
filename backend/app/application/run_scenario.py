@@ -44,6 +44,8 @@ class DebriefResult:
     insights: tuple[Insight, ...]
     lead_times: tuple[float, ...]
     on_time: tuple[bool, ...]
+    release_times: tuple[float, ...]
+    completion_times: tuple[float, ...]
     value_added_mean: float
     waiting_mean: float
     applied_batch_size: int
@@ -75,6 +77,8 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         insights=insights,
         lead_times=tuple(o.lead_time for o in log.orders),
         on_time=tuple(o.is_on_time(config.takt_time, config.delivery_window) for o in log.orders),
+        release_times=tuple(o.release_time for o in log.orders),
+        completion_times=tuple(o.completion_time for o in log.orders),
         value_added_mean=value_added_mean,
         waiting_mean=waiting_mean,
         applied_batch_size=config.batch_size,

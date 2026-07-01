@@ -67,6 +67,8 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         ],
         lead_times=list(result.lead_times),
         on_time=list(result.on_time),
+        release_times=list(result.release_times),
+        completion_times=list(result.completion_times),
         value_added_mean=result.value_added_mean,
         waiting_mean=result.waiting_mean,
         applied_batch_size=result.applied_batch_size,

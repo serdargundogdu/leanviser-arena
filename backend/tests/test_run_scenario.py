@@ -37,3 +37,15 @@ def test_applied_lever_values_are_clamped() -> None:
     result = _run(batch_size=1000, release_interval=999.0)
     assert result.applied_batch_size == int(scenario.batch_size_lever.maximum)
     assert result.applied_release_interval == scenario.release_interval_lever.maximum
+
+
+def test_arrival_and_departure_times_for_cfd() -> None:
+    n = baseline_scenario().order_count
+    result = _run(batch_size=1, release_interval=6.0)
+    assert len(result.release_times) == n
+    assert len(result.completion_times) == n
+    # Each order completes no earlier than it was released.
+    assert all(
+        completion >= release
+        for release, completion in zip(result.release_times, result.completion_times, strict=True)
+    )

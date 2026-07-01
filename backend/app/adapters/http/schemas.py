@@ -60,6 +60,8 @@ class SimulateResponse(BaseModel):
     insights: list[InsightDto]
     lead_times: list[float]
     on_time: list[bool]
+    release_times: list[float]
+    completion_times: list[float]
     value_added_mean: float
     waiting_mean: float
     applied_batch_size: int
