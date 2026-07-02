@@ -43,17 +43,35 @@ _COMPLETE = 1
 
 
 @dataclass(frozen=True)
+class StationVisit:
+    """One order's pass through one station: queue entry, processing window.
+
+    The gap between ``finished_at`` here and ``queued_at`` at the next station
+    is transfer-batch waiting (a full batch moves at the same instant).
+    """
+
+    order_id: int
+    station_index: int
+    queued_at: float
+    started_at: float
+    finished_at: float
+
+
+@dataclass(frozen=True)
 class EventLog:
     """Immutable record of a completed simulation run.
 
     ``orders`` carry release/completion timestamps and accumulated value-added
     time. ``wip_samples`` is a step function ``(time, level_after_change)`` of
     work-in-process, time-sorted, starting at ``(horizon_start, 0)`` and ending
-    at ``(horizon_end, 0)`` — the system begins and ends empty.
+    at ``(horizon_end, 0)`` — the system begins and ends empty. ``visits`` is
+    the full station-level trace (order × station), sorted by (order, station),
+    enough to replay the run visually.
     """
 
     orders: tuple[Order, ...]
     wip_samples: tuple[tuple[float, int], ...]
+    visits: tuple[StationVisit, ...]
     horizon_start: float
     horizon_end: float
 
@@ -103,6 +121,9 @@ def simulate(config: LineConfig) -> EventLog:
     wip = 0
     wip_samples: list[tuple[float, int]] = [(0.0, 0)]
 
+    # Station-level trace for replay: (order, station) → [queued, started, finished].
+    visit_track: dict[tuple[int, int], list[float]] = {}
+
     def record_wip(time: float, delta: int) -> None:
         nonlocal wip
         wip += delta
@@ -127,6 +148,7 @@ def simulate(config: LineConfig) -> EventLog:
     def start_processing(time: float, station_idx: int) -> None:
         order = queues[station_idx].popleft()
         busy[station_idx] = True
+        visit_track[(order.order_id, station_idx)][1] = time
         cycle_time = sample_cycle_time(station_idx)
         if config.stations[station_idx].value_added:
             order.value_added_time += cycle_time
@@ -154,12 +176,14 @@ def simulate(config: LineConfig) -> EventLog:
                 return
             order.release_time = time
             record_wip(time, +1)
+        visit_track[(order.order_id, station_idx)] = [time, -1.0, -1.0]
         queues[station_idx].append(order)
         if not busy[station_idx]:
             start_processing(time, station_idx)
 
     def on_complete(time: float, station_idx: int, order: Order) -> None:
         busy[station_idx] = False
+        visit_track[(order.order_id, station_idx)][2] = time
         batch_buffer[station_idx].append(order)
         processed_at[station_idx] += 1
         # Flush when the transfer batch is full, or when this station has seen
@@ -185,9 +209,20 @@ def simulate(config: LineConfig) -> EventLog:
 
     horizon_start = min(o.release_time for o in orders)  # type: ignore[type-var]
     horizon_end = max(o.completion_time for o in orders)  # type: ignore[type-var]
+    visits = tuple(
+        StationVisit(
+            order_id=order_id,
+            station_index=station_idx,
+            queued_at=times[0],
+            started_at=times[1],
+            finished_at=times[2],
+        )
+        for (order_id, station_idx), times in sorted(visit_track.items())
+    )
     return EventLog(
         orders=tuple(orders),
         wip_samples=tuple(wip_samples),
+        visits=visits,
         horizon_start=horizon_start,
         horizon_end=horizon_end,
     )

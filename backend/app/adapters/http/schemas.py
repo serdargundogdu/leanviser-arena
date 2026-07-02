@@ -18,6 +18,19 @@ class LeverDescriptor(BaseModel):
     cost_per_step: float
 
 
+class StationDescriptor(BaseModel):
+    name: str
+    cycle_time_mean: float
+
+
+class VisitDto(BaseModel):
+    order_id: int
+    station_index: int
+    queued_at: float
+    started_at: float
+    finished_at: float
+
+
 class ScenarioDescriptor(BaseModel):
     scenario_id: str
     order_count: int
@@ -25,6 +38,7 @@ class ScenarioDescriptor(BaseModel):
     takt_time: float
     ideal_lead_time: float
     kaizen_budget: float
+    stations: list[StationDescriptor]
     levers: list[LeverDescriptor]
 
 
@@ -67,6 +81,7 @@ class SimulateResponse(BaseModel):
     on_time: list[bool]
     release_times: list[float]
     completion_times: list[float]
+    visits: list[VisitDto]
     value_added_mean: float
     waiting_mean: float
     applied_levers: dict[str, float]

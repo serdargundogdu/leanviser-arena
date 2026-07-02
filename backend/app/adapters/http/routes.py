@@ -18,6 +18,8 @@ from app.adapters.http.schemas import (
     ScoreDto,
     SimulateRequest,
     SimulateResponse,
+    StationDescriptor,
+    VisitDto,
 )
 from app.application.run_scenario import RunScenarioCommand, run_scenario
 from app.domain.scenario.scenario import (
@@ -39,6 +41,10 @@ def _descriptor(scenario: Scenario) -> ScenarioDescriptor:
         takt_time=scenario.takt_time,
         ideal_lead_time=scenario.ideal_lead_time,
         kaizen_budget=scenario.kaizen_budget,
+        stations=[
+            StationDescriptor(name=station.name, cycle_time_mean=station.cycle_time_mean)
+            for station in scenario.base_stations
+        ],
         levers=[
             LeverDescriptor(
                 key=lever.key,
@@ -96,6 +102,16 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         on_time=list(result.on_time),
         release_times=list(result.release_times),
         completion_times=list(result.completion_times),
+        visits=[
+            VisitDto(
+                order_id=visit.order_id,
+                station_index=visit.station_index,
+                queued_at=visit.queued_at,
+                started_at=visit.started_at,
+                finished_at=visit.finished_at,
+            )
+            for visit in result.visits
+        ],
         value_added_mean=result.value_added_mean,
         waiting_mean=result.waiting_mean,
         applied_levers=result.applied_levers,

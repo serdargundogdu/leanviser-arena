@@ -21,7 +21,7 @@ from app.domain.scenario.scenario import (
     Scenario,
 )
 from app.domain.scoring.score import Score, compute_score
-from app.domain.simulation.engine import simulate
+from app.domain.simulation.engine import StationVisit, simulate
 from app.domain.simulation.metrics import SimulationMetrics, compute_metrics
 
 
@@ -53,6 +53,7 @@ class DebriefResult:
     on_time: tuple[bool, ...]
     release_times: tuple[float, ...]
     completion_times: tuple[float, ...]
+    visits: tuple[StationVisit, ...]
     value_added_mean: float
     waiting_mean: float
     applied_levers: dict[str, float]
@@ -91,6 +92,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         on_time=tuple(o.is_on_time(config.takt_time, config.delivery_window) for o in log.orders),
         release_times=tuple(o.release_time for o in log.orders),
         completion_times=tuple(o.completion_time for o in log.orders),
+        visits=log.visits,
         value_added_mean=value_added_mean,
         waiting_mean=waiting_mean,
         applied_levers=applied,
