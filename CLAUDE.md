@@ -180,9 +180,12 @@ yapısal kusur varken varyans azaltmak ödemiyor; CV=1 + takt=darboğaz da
   → strateji seç. İlk taslak (takt-girişli sıkı cap) ölçümde çürüdü: takt
   programını starve ediyor, seed-kırılgan.
 
+**v0.9 sonrası küçük dilim:** pull koçluk kuralları (`try_pull` — tavan gevşek
+ve FE düşükken; `cap_too_tight` — akış iyi ama teslim starve olurken; yalnız
+cap kaldıraçlı senaryolarda konuşur).
+
 **Hâlâ YOK — sonraki dilimler:**
 - Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v1.0+.
-- Pull koçluk kuralı (cap kaldıraçlı senaryolarda) → küçük aday dilim.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.

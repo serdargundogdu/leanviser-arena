@@ -165,5 +165,5 @@ docker run -p 8080:8080 leanviser-arena-backend
 ## Sıradaki dilim (v1.0 adayları)
 
 Skor tablosu / koşu geçmişi — **kalıcılık (DB) kararı gerektirir**; public
-yayın da ayrı insan kararı (izole keşif bayrağı). Küçük aday: pull koçluk
-kuralı. Kapsam bayrakları için `CLAUDE.md`.
+yayın da ayrı insan kararı (izole keşif bayrağı). Kapsam bayrakları için
+`CLAUDE.md`.

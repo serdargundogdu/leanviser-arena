@@ -63,3 +63,22 @@ def test_everything_at_once_exceeds_the_budget() -> None:
     # Pull AND full standard work together cost 10.5 > 8 — pick a strategy.
     with pytest.raises(KaizenBudgetExceededError):
         _run({"release_interval": 0.0, "wip_cap": 3, "variance_factor": 0.25})
+
+
+def test_coach_suggests_pull_when_the_cap_sits_loose() -> None:
+    codes = {insight.code for insight in _run({}).insights}
+    assert "try_pull" in {code.value for code in codes}
+
+
+def test_coach_flags_a_starving_cap() -> None:
+    starved = _run({"release_interval": 0.0, "wip_cap": 2})
+    codes = {insight.code.value for insight in starved.insights}
+    assert "cap_too_tight" in codes
+
+
+def test_coach_is_quiet_about_pull_when_pull_is_played_well() -> None:
+    pulled = _run({"release_interval": 0.0, "wip_cap": 3})
+    codes = {insight.code.value for insight in pulled.insights}
+    assert "try_pull" not in codes
+    assert "cap_too_tight" not in codes
+    assert "balanced_flow" in codes

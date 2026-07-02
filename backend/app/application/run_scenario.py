@@ -17,6 +17,7 @@ from app.domain.scenario.scenario import (
     LEVER_BATCH_SIZE,
     LEVER_RELEASE_INTERVAL,
     LEVER_VARIANCE_FACTOR,
+    LEVER_WIP_CAP,
     Scenario,
 )
 from app.domain.scoring.score import Score, compute_score
@@ -75,6 +76,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
             release_interval=applied[LEVER_RELEASE_INTERVAL],
             takt_time=config.takt_time,
             variance_factor=applied[LEVER_VARIANCE_FACTOR],
+            wip_cap=applied.get(LEVER_WIP_CAP),
         )
     )
 

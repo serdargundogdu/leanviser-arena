@@ -22,6 +22,14 @@ const COPY: Record<string, { title: string; tip: string }> = {
     title: "Değişkenlik akışını yiyor",
     tip: "Akış düzgün ama çevrim süreleri oynak; kalan bekleme bundan. Standart işe yatır.",
   },
+  try_pull: {
+    title: "Çekmeyi dene",
+    tip: "Tavan gevşek duruyor. Çizelgeyi değil WIP'i yönet: girişte backlog, içeride sıkı tavan.",
+  },
+  cap_too_tight: {
+    title: "Tavan çok sıkı",
+    tip: "Akış hızlı ama takt programına geç kalıyorsun — darboğaz aç kalıyor. Tavanı bir tık gevşet.",
+  },
   balanced_flow: {
     title: "Dengeli akış",
     tip: "Takt'a yakın salım ve küçük parti — yalın akışın özü bu.",
