@@ -50,10 +50,13 @@ class DebriefResult:
     waiting_mean: float
     applied_batch_size: int
     applied_release_interval: float
+    credit_cost: float
 
 
 def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     scenario = command.scenario
+    # Game rule: lever moves must fit the kaizen budget (raises if exceeded).
+    credit_cost = scenario.validate_budget(command.batch_size, command.release_interval)
     config = scenario.build_config(command.batch_size, command.release_interval)
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
@@ -83,4 +86,5 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         waiting_mean=waiting_mean,
         applied_batch_size=config.batch_size,
         applied_release_interval=config.release_interval,
+        credit_cost=credit_cost,
     )

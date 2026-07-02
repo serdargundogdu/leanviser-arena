@@ -15,6 +15,7 @@ class LeverDescriptor(BaseModel):
     maximum: float
     step: float
     default: float
+    cost_per_step: float
 
 
 class ScenarioDescriptor(BaseModel):
@@ -23,6 +24,7 @@ class ScenarioDescriptor(BaseModel):
     delivery_window: float
     takt_time: float
     ideal_lead_time: float
+    kaizen_budget: float
     levers: list[LeverDescriptor]
 
 
@@ -66,3 +68,4 @@ class SimulateResponse(BaseModel):
     waiting_mean: float
     applied_batch_size: int
     applied_release_interval: float
+    credit_cost: float

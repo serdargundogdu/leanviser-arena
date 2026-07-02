@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.adapters.http.schemas import (
     InsightDto,
@@ -20,7 +20,7 @@ from app.adapters.http.schemas import (
     SimulateResponse,
 )
 from app.application.run_scenario import RunScenarioCommand, run_scenario
-from app.domain.scenario.scenario import baseline_scenario
+from app.domain.scenario.scenario import KaizenBudgetExceededError, baseline_scenario
 
 router = APIRouter(prefix="/api", tags=["arena"])
 
@@ -35,6 +35,7 @@ def get_scenario() -> ScenarioDescriptor:
         delivery_window=scenario.delivery_window,
         takt_time=scenario.takt_time,
         ideal_lead_time=scenario.ideal_lead_time,
+        kaizen_budget=scenario.kaizen_budget,
         levers=[
             LeverDescriptor(
                 key=lever.key,
@@ -42,6 +43,7 @@ def get_scenario() -> ScenarioDescriptor:
                 maximum=lever.maximum,
                 step=lever.step,
                 default=lever.default,
+                cost_per_step=lever.cost_per_step,
             )
             for lever in scenario.levers()
         ],
@@ -50,14 +52,28 @@ def get_scenario() -> ScenarioDescriptor:
 
 @router.post("/simulate", response_model=SimulateResponse)
 def post_simulate(request: SimulateRequest) -> SimulateResponse:
-    """Run the deterministic simulation for the player's lever values."""
-    result = run_scenario(
-        RunScenarioCommand(
-            scenario=baseline_scenario(),
-            batch_size=request.batch_size,
-            release_interval=request.release_interval,
+    """Run the deterministic simulation for the player's lever values.
+
+    Rejects with 422 when the requested lever moves exceed the scenario's
+    kaizen budget (the UI prevents this; the server stays authoritative).
+    """
+    try:
+        result = run_scenario(
+            RunScenarioCommand(
+                scenario=baseline_scenario(),
+                batch_size=request.batch_size,
+                release_interval=request.release_interval,
+            )
         )
-    )
+    except KaizenBudgetExceededError as error:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "budget_exceeded",
+                "cost": error.cost,
+                "budget": error.budget,
+            },
+        ) from error
     return SimulateResponse(
         score=ScoreDto(**asdict(result.score)),
         metrics=MetricsDto(**asdict(result.metrics)),
@@ -73,4 +89,5 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         waiting_mean=result.waiting_mean,
         applied_batch_size=result.applied_batch_size,
         applied_release_interval=result.applied_release_interval,
+        credit_cost=result.credit_cost,
     )

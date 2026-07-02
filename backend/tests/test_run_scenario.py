@@ -33,10 +33,12 @@ def test_lean_flow_beats_push_batching() -> None:
 
 
 def test_applied_lever_values_are_clamped() -> None:
+    # Clamp up on batch (1000 → max 20 = 15 credits) and down on release
+    # (-5 → min 0 = free): both directions covered while staying in budget.
     scenario = baseline_scenario()
-    result = _run(batch_size=1000, release_interval=999.0)
+    result = _run(batch_size=1000, release_interval=-5.0)
     assert result.applied_batch_size == int(scenario.batch_size_lever.maximum)
-    assert result.applied_release_interval == scenario.release_interval_lever.maximum
+    assert result.applied_release_interval == scenario.release_interval_lever.minimum
 
 
 def test_arrival_and_departure_times_for_cfd() -> None:

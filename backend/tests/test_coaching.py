@@ -1,21 +1,30 @@
-"""Coaching rules: guidance is actionable and matches the run's failure mode."""
+"""Coaching rules: guidance is actionable and matches the run's failure mode.
 
-from app.application.run_scenario import RunScenarioCommand, run_scenario
+Runs at DOMAIN level (engine → metrics → score → diagnose) so rules can be
+probed on configs the kaizen budget prices out of play (e.g. over-pacing).
+"""
+
 from app.domain.coaching.coach import Insight, InsightCode, Severity, diagnose
 from app.domain.scenario.scenario import baseline_scenario
-from app.domain.scoring.score import Score
-from app.domain.simulation.metrics import SimulationMetrics
+from app.domain.scoring.score import Score, compute_score
+from app.domain.simulation.engine import simulate
+from app.domain.simulation.metrics import SimulationMetrics, compute_metrics
 
 
 def _codes(batch_size: float, release_interval: float) -> set[InsightCode]:
-    result = run_scenario(
-        RunScenarioCommand(
-            scenario=baseline_scenario(),
-            batch_size=batch_size,
-            release_interval=release_interval,
-        )
+    scenario = baseline_scenario()
+    config = scenario.build_config(batch_size, release_interval)
+    log = simulate(config)
+    metrics = compute_metrics(log, config.takt_time, config.delivery_window)
+    score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
+    insights = diagnose(
+        metrics=metrics,
+        score=score,
+        batch_size=config.batch_size,
+        release_interval=config.release_interval,
+        takt_time=config.takt_time,
     )
-    return {insight.code for insight in result.insights}
+    return {insight.code for insight in insights}
 
 
 def test_balanced_flow_is_praised_not_scolded() -> None:
