@@ -21,6 +21,7 @@ from app.domain.simulation.line import LineConfig, StationSpec
 LEVER_BATCH_SIZE = "batch_size"
 LEVER_RELEASE_INTERVAL = "release_interval"
 LEVER_VARIANCE_FACTOR = "variance_factor"
+LEVER_WIP_CAP = "wip_cap"
 
 
 class KaizenBudgetExceededError(ValueError):
@@ -86,25 +87,29 @@ class Scenario:
     release_interval_lever: Lever
     variance_lever: Lever
     weights: ScoreWeights
+    wip_cap_lever: Lever | None = None
 
     @property
     def ideal_lead_time(self) -> float:
         return sum(station.cycle_time_mean for station in self.base_stations)
 
     def levers(self) -> tuple[Lever, ...]:
-        return (self.batch_size_lever, self.release_interval_lever, self.variance_lever)
+        base = (self.batch_size_lever, self.release_interval_lever, self.variance_lever)
+        if self.wip_cap_lever is not None:
+            return (*base, self.wip_cap_lever)
+        return base
 
     def applied_values(self, lever_values: Mapping[str, float]) -> dict[str, float]:
         """The lever values that would actually run, keyed by lever key.
 
         Missing keys fall back to the lever default; everything is clamped and
-        whole-unit levers (batch) are rounded. Cost and config are both derived
-        from THIS, so the price always matches what runs.
+        whole-unit levers (batch, wip cap) are rounded. Cost and config are
+        both derived from THIS, so the price always matches what runs.
         """
         applied: dict[str, float] = {}
         for lever in self.levers():
             value = lever.clamp(lever_values.get(lever.key, lever.default))
-            if lever.key == LEVER_BATCH_SIZE:
+            if lever.key in (LEVER_BATCH_SIZE, LEVER_WIP_CAP):
                 value = float(int(round(value)))
             applied[lever.key] = value
         return applied
@@ -143,6 +148,7 @@ class Scenario:
             seed=self.seed,
             batch_size=int(applied[LEVER_BATCH_SIZE]),
             release_interval=applied[LEVER_RELEASE_INTERVAL],
+            wip_cap=(int(applied[LEVER_WIP_CAP]) if self.wip_cap_lever is not None else None),
         )
 
 
@@ -242,9 +248,65 @@ def unstable_line_scenario() -> Scenario:
     )
 
 
+def pull_line_scenario() -> Scenario:
+    """The third scenario: the pull challenge (CONWIP) in a chaotic plant.
+
+    Same CV≈1 environment as the unstable line, but the WIP cap is a lever and
+    RESCHEDULING IS FREE (release moves cost 0 — a schedule is planning, not
+    investment). Defaults run careful takt-paced push, which drowns in the
+    noise (≈27). Two honest strategies fit the budget of 8:
+
+      * PULL: flood the eligibility (free) + tighten the cap — backlog at the
+        door, few orders inside (classic CONWIP). Measured: cap 3 ≈ 74 for
+        4.5 credits; the cap tunes like a real system (2 starves ≈ 38,
+        4 too loose ≈ 58).
+      * ROOT CAUSE: standard work at takt pacing ≈ 79 for 6 credits — slightly
+        better, pricier, and it ONLY works with pacing kept (with flood and no
+        cap it collapses to ≈ 20).
+
+    Structure fiddling stays punished (batch 2 pull ≈ 11).
+    """
+    return Scenario(
+        scenario_id="pull_line",
+        base_stations=(
+            StationSpec("cut", cycle_time_mean=4.0, cycle_time_variance=16.0),
+            StationSpec("weld", cycle_time_mean=6.0, cycle_time_variance=36.0),
+            StationSpec("paint", cycle_time_mean=5.0, cycle_time_variance=25.0),
+        ),
+        order_count=60,
+        delivery_window=35.0,
+        takt_time=7.5,
+        seed=7,
+        kaizen_budget=8.0,
+        batch_size_lever=Lever(
+            key=LEVER_BATCH_SIZE, minimum=1, maximum=20, step=1, default=1, cost_per_step=1.0
+        ),
+        release_interval_lever=Lever(
+            key=LEVER_RELEASE_INTERVAL,
+            minimum=0.0,
+            maximum=12.0,
+            step=0.5,
+            default=7.5,
+            cost_per_step=0.0,  # rescheduling is free — the point of the lesson
+        ),
+        variance_lever=Lever(
+            key=LEVER_VARIANCE_FACTOR,
+            minimum=0.25,
+            maximum=1.0,
+            step=0.25,
+            default=1.0,
+            cost_per_step=2.0,
+        ),
+        weights=ScoreWeights(lead_time=0.57, flow_efficiency=0.43),
+        wip_cap_lever=Lever(
+            key=LEVER_WIP_CAP, minimum=2, maximum=12, step=1, default=12, cost_per_step=0.5
+        ),
+    )
+
+
 def scenarios() -> tuple[Scenario, ...]:
     """All playable scenarios, in presentation order."""
-    return (baseline_scenario(), unstable_line_scenario())
+    return (baseline_scenario(), unstable_line_scenario(), pull_line_scenario())
 
 
 def get_scenario(scenario_id: str) -> Scenario:

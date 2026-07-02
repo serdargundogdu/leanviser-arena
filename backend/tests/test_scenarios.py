@@ -35,7 +35,7 @@ def _run(scenario_id: str, batch_size: float, release_interval: float, vf: float
 
 def test_registry_lists_unique_playable_scenarios() -> None:
     ids = [scenario.scenario_id for scenario in scenarios()]
-    assert ids == ["baseline", "unstable_line"]
+    assert ids == ["baseline", "unstable_line", "pull_line"]
     assert len(set(ids)) == len(ids)
 
 
@@ -66,9 +66,13 @@ def test_unstable_standard_work_is_the_only_fix_that_pays() -> None:
     assert speeding_up.score.composite < defaults.score.composite
 
 
-def test_api_lists_both_scenarios() -> None:
+def test_api_lists_all_scenarios() -> None:
     body = client.get("/api/scenarios").json()
-    assert [entry["scenario_id"] for entry in body] == ["baseline", "unstable_line"]
+    assert [entry["scenario_id"] for entry in body] == [
+        "baseline",
+        "unstable_line",
+        "pull_line",
+    ]
 
 
 def test_api_simulate_accepts_scenario_id() -> None:
