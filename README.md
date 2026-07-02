@@ -5,7 +5,7 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.9 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 1.0 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
@@ -27,6 +27,9 @@ bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 > tavanıyla BİRLEŞTİRİR; kaotik hatta dikkatli çizelge 27'de kalırken girişte
 > backlog + içeride tavan 4.5 krediye 74 yapar. Çizelge değişikliği bedavadır;
 > yapı yatırımı değildir.
+> **v1.0:** **3D Fabrika Replay** (three.js, lazy) — koşuyu izle: kuyruklar
+> fiziksel yığılır, tavan kapıda görünür, geç kalanlar rıhtımda turuncuya
+> döner. Sunucu istasyon-bazlı olay izini (`visits`) açar.
 
 ## Mimari
 
@@ -51,7 +54,8 @@ adapters/  →  application/  →  domain/
 - `backend/app/adapters/http/` — FastAPI: `GET /health`, `GET /api/scenarios`,
   `POST /api/simulate` (`scenario_id` ile). Kalıcılık/auth YOK (ertelendi).
 - `frontend/` — Vite + React + TS, 2D debrief UI (kaldıraçlar + skor kartı +
-  koçluk paneli + flow-time röntgeni + kümülatif akış diyagramı). 3D yok.
+  koçluk paneli + flow-time röntgeni + CFD) + **lazy 3D fabrika replay**
+  (three.js ayrı chunk'ta; 2D çekirdek hafif kalır).
 
 ## Gereksinimler
 
@@ -162,8 +166,8 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v1.0 adayları)
+## Sıradaki dilim (v1.1 adayları)
 
-Skor tablosu / koşu geçmişi — **kalıcılık (DB) kararı gerektirir**; public
-yayın da ayrı insan kararı (izole keşif bayrağı). Kapsam bayrakları için
+Blender→glTF fabrika varlıkları (3D cila) · skor tablosu (**DB kararı
+gerektirir**) · public yayın (ayrı insan kararı). Kapsam bayrakları için
 `CLAUDE.md`.

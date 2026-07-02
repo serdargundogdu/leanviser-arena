@@ -54,9 +54,10 @@ kararlar bu çerçevenin dışına **insan onayı olmadan** çıkmaz.
 - **Backend:** Python 3.12 + FastAPI. Test: pytest. Lint/format: ruff.
   Bağımlılık: **uv**. Domain katmanı **yalnız stdlib** kullanır (numpy yok) →
   tohumlu `random.Random(seed)` ile bit-aynı tekrar.
-- **Frontend:** React + Vite + TypeScript — v0.2'de 2D debrief UI (2 kaldıraç
-  + skor kartı + hero flow-time röntgeni). Dev'de `/api` Vite proxy ile
-  backend'e gider. **Three.js EKLENMEZ** (3D ertelendi).
+- **Frontend:** React + Vite + TypeScript — 2D debrief UI (kaldıraçlar + skor
+  + koçluk + flow-time + CFD). Dev'de `/api` Vite proxy ile backend'e gider.
+  **Three.js yalnız 3D replay panelinde** (v1.0'da açıldı; **lazy chunk** —
+  2D çekirdek ~51KB gz kalır; 3D'yi başka panele sızdırma).
 - **Dağıtım:** GCP Cloud Run + GitHub Actions CI/CD; backend `Dockerfile`.
 
 ## Dil kuralı
@@ -111,7 +112,7 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 
 ```
 backend/    FastAPI + saf domain (simulation/scoring/scenario/coaching) + application/adapters
-frontend/   Vite + React + TS (2D debrief: kaldıraçlar + skor + koçluk + flow-time + CFD)
+frontend/   Vite + React + TS (2D debrief + lazy 3D fabrika replay)
 .github/    CI (ruff+pytest+build) · deploy (Cloud Run iskeleti)
 ```
 
@@ -184,10 +185,23 @@ yapısal kusur varken varyans azaltmak ödemiyor; CV=1 + takt=darboğaz da
 ve FE düşükken; `cap_too_tight` — akış iyi ama teslim starve olurken; yalnız
 cap kaldıraçlı senaryolarda konuşur).
 
+**v1.0'da yapıldı** (yol haritasının v2.x 3D içeriği öne alındı; Three.js
+kilidi insan onayıyla açıldı):
+- **Olay izi:** motor `StationVisit` (queued/started/finished, sipariş ×
+  istasyon) kaydeder — fizik/determinizm değişmedi; API `visits` +
+  descriptor'da istasyon adı/ortalaması. Değişmez testleri: tam kapsama,
+  sipariş-içi kronoloji (parti nüansı: son finish ≤ completion; parti=1'de
+  eşit), istasyonda tek-sunucu münhasırlığı.
+- **3D Fabrika Replay:** three.js **lazy chunk** (~137KB gz; 2D çekirdek
+  ~51KB'de kaldı). Küpler backlog→kuyruk(kehribar)→işleme(mavi)→sevkiyat
+  (yeşil/turuncu, takt dakikliği); kapıda tavan etiketi, darboğaz istasyonu
+  vurgulu; oynat/duraklat + ×1/×4/×16 + kaydırıcı + OrbitControls.
+  Primitif geometri — Blender→glTF cilası sonraki dilim.
+
 **Hâlâ YOK — sonraki dilimler:**
-- Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v1.0+.
+- Blender→glTF fabrika varlıkları (3D cila) → v1.1+ (Blender MCP hazır).
+- Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v1.1+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
-- Three.js / 3D fabrika → v2.x.
 - LeanViser Core entegrasyonu → port bırak, adapter YOK.
 - Yamazumi (hat dengeleme) → v2.x (motor jenerik; çekme v0.9'da geldi).
