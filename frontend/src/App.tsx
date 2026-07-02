@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 
 import { fetchScenarios, runSimulation } from "./api";
 import { CoachingPanel } from "./components/CoachingPanel";
@@ -7,6 +7,9 @@ import { FlowTimeDebrief } from "./components/FlowTimeDebrief";
 import { LeverControls } from "./components/LeverControls";
 import { ScoreCard } from "./components/ScoreCard";
 import type { ScenarioDescriptor, SimulateResponse } from "./types";
+
+// Three.js lives in its own lazy chunk so the 2D debrief stays light.
+const FactoryReplay = lazy(() => import("./components/FactoryReplay"));
 
 // Turkish copy for the language-neutral scenario ids from the API.
 const SCENARIO_COPY: Record<string, { name: string; description: string }> = {
@@ -104,7 +107,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.9</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 1.0</p>
       </header>
 
       {error && (
@@ -215,6 +218,26 @@ export function App() {
               </>
             )}
           </div>
+
+          {result && (
+            <div className="panel panel--wide">
+              <h3 className="debrief__title">Fabrika Replay (3D)</h3>
+              <p className="debrief__sub">
+                Koşuyu izle: kuyruklar fiziksel yığılır, geç kalanlar rıhtımda
+                turuncuya döner.
+              </p>
+              <Suspense fallback={<p className="muted">3D sahne yükleniyor…</p>}>
+                <FactoryReplay
+                  visits={result.visits}
+                  onTime={result.on_time}
+                  completionTimes={result.completion_times}
+                  stations={scenario.stations}
+                  makespan={result.metrics.makespan}
+                  wipCap={result.applied_levers.wip_cap ?? null}
+                />
+              </Suspense>
+            </div>
+          )}
         </section>
       )}
 

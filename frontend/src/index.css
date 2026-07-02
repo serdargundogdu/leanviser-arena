@@ -491,6 +491,66 @@ input[type="range"] {
   background: #6ea8fe;
 }
 
+/* 3D factory replay */
+.replay__canvas {
+  width: 100%;
+  height: 400px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card-2);
+}
+
+.replay__canvas canvas {
+  display: block;
+}
+
+.replay__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.replay__btn {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.replay__btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.replay__scrubber {
+  flex: 1;
+  min-width: 8rem;
+  accent-color: var(--accent);
+}
+
+.replay__clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 6.5rem;
+  text-align: right;
+}
+
+.replay__legend {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.replay__legend .dot {
+  margin-right: 0.15rem;
+}
+
 /* Coaching */
 .coaching__title {
   margin: 0 0 0.75rem;

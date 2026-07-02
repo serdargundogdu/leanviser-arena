@@ -9,6 +9,11 @@ export interface LeverDescriptor {
   cost_per_step: number;
 }
 
+export interface StationDescriptor {
+  name: string;
+  cycle_time_mean: number;
+}
+
 export interface ScenarioDescriptor {
   scenario_id: string;
   order_count: number;
@@ -16,6 +21,7 @@ export interface ScenarioDescriptor {
   takt_time: number;
   ideal_lead_time: number;
   kaizen_budget: number;
+  stations: StationDescriptor[];
   levers: LeverDescriptor[];
 }
 
@@ -47,6 +53,14 @@ export interface Insight {
   severity: "good" | "warning" | "critical";
 }
 
+export interface VisitDto {
+  order_id: number;
+  station_index: number;
+  queued_at: number;
+  started_at: number;
+  finished_at: number;
+}
+
 export interface SimulateResponse {
   score: ScoreDto;
   metrics: MetricsDto;
@@ -55,6 +69,7 @@ export interface SimulateResponse {
   on_time: boolean[];
   release_times: number[];
   completion_times: number[];
+  visits: VisitDto[];
   value_added_mean: number;
   waiting_mean: number;
   applied_levers: Record<string, number>;
