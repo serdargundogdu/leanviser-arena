@@ -7,13 +7,12 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_get_scenario() -> None:
-    response = client.get("/api/scenario")
+def test_list_scenarios_includes_baseline() -> None:
+    response = client.get("/api/scenarios")
     assert response.status_code == 200
-    body = response.json()
-    assert body["scenario_id"] == "baseline"
-    assert body["takt_time"] > 0
-    keys = {lever["key"] for lever in body["levers"]}
+    baseline = next(entry for entry in response.json() if entry["scenario_id"] == "baseline")
+    assert baseline["takt_time"] > 0
+    keys = {lever["key"] for lever in baseline["levers"]}
     assert keys == {"batch_size", "release_interval", "variance_factor"}
 
 

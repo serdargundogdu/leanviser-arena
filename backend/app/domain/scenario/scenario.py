@@ -31,6 +31,14 @@ class KaizenBudgetExceededError(ValueError):
         super().__init__(f"kaizen budget exceeded: cost {cost} > budget {budget}")
 
 
+class UnknownScenarioError(ValueError):
+    """No scenario is registered under the requested id."""
+
+    def __init__(self, scenario_id: str) -> None:
+        self.scenario_id = scenario_id
+        super().__init__(f"unknown scenario: {scenario_id}")
+
+
 @dataclass(frozen=True)
 class Lever:
     """A bounded, player-tunable input. Values are clamped to [minimum, maximum].
@@ -197,3 +205,64 @@ def baseline_scenario() -> Scenario:
         # Flow-quality weights (sum to 1); delivery reliability gates the score.
         weights=ScoreWeights(lead_time=0.57, flow_efficiency=0.43),
     )
+
+
+def unstable_line_scenario() -> Scenario:
+    """The second scenario: structurally lean, wildly unsteady.
+
+    The line already runs one-piece at takt (defaults batch 1, release = takt
+    7.5 — the bottleneck keeps ~20% capacity headroom), but every station has
+    CV≈1 cycle times (variance = mean²). The queues here are VARIABILITY-driven
+    (Kingman), so the only fix that pays is standard work — the opposite ROI
+    order of the baseline. Diagnose before you prescribe.
+
+    Budget = 6 = exactly the standard-work full fix. Measured (seed 42):
+    defaults ≈ 45 → variance 0.25 ≈ 81; misallocations are WORSE than doing
+    nothing (batch fiddling ≈ 30, releasing faster than takt ≈ 38).
+    """
+    return Scenario(
+        scenario_id="unstable_line",
+        base_stations=(
+            StationSpec("cut", cycle_time_mean=4.0, cycle_time_variance=16.0),
+            StationSpec("weld", cycle_time_mean=6.0, cycle_time_variance=36.0),
+            StationSpec("paint", cycle_time_mean=5.0, cycle_time_variance=25.0),
+        ),
+        order_count=60,
+        delivery_window=35.0,
+        takt_time=7.5,
+        seed=42,
+        kaizen_budget=6.0,
+        batch_size_lever=Lever(
+            key=LEVER_BATCH_SIZE, minimum=1, maximum=20, step=1, default=1, cost_per_step=1.0
+        ),
+        release_interval_lever=Lever(
+            key=LEVER_RELEASE_INTERVAL,
+            minimum=0.0,
+            maximum=12.0,
+            step=0.5,
+            default=7.5,
+            cost_per_step=1.0,
+        ),
+        variance_lever=Lever(
+            key=LEVER_VARIANCE_FACTOR,
+            minimum=0.25,
+            maximum=1.0,
+            step=0.25,
+            default=1.0,
+            cost_per_step=2.0,
+        ),
+        weights=ScoreWeights(lead_time=0.57, flow_efficiency=0.43),
+    )
+
+
+def scenarios() -> tuple[Scenario, ...]:
+    """All playable scenarios, in presentation order."""
+    return (baseline_scenario(), unstable_line_scenario())
+
+
+def get_scenario(scenario_id: str) -> Scenario:
+    """Look a scenario up by id, raising ``UnknownScenarioError`` if absent."""
+    for scenario in scenarios():
+        if scenario.scenario_id == scenario_id:
+            return scenario
+    raise UnknownScenarioError(scenario_id)

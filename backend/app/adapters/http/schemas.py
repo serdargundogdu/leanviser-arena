@@ -29,6 +29,7 @@ class ScenarioDescriptor(BaseModel):
 
 
 class SimulateRequest(BaseModel):
+    scenario_id: str = Field(default="baseline", description="which scenario to run")
     batch_size: float = Field(description="transfer batch size lever value")
     release_interval: float = Field(description="release interval lever value")
     variance_factor: float = Field(

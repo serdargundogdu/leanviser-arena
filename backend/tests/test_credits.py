@@ -61,7 +61,9 @@ def test_api_rejects_over_budget_with_422() -> None:
 
 
 def test_api_exposes_budget_and_costs() -> None:
-    descriptor = client.get("/api/scenario").json()
+    descriptor = next(
+        entry for entry in client.get("/api/scenarios").json() if entry["scenario_id"] == "baseline"
+    )
     assert descriptor["kaizen_budget"] == pytest.approx(22.0)
     assert all(lever["cost_per_step"] > 0 for lever in descriptor["levers"])
 

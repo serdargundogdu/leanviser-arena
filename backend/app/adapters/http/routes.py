@@ -20,15 +20,18 @@ from app.adapters.http.schemas import (
     SimulateResponse,
 )
 from app.application.run_scenario import RunScenarioCommand, run_scenario
-from app.domain.scenario.scenario import KaizenBudgetExceededError, baseline_scenario
+from app.domain.scenario.scenario import (
+    KaizenBudgetExceededError,
+    Scenario,
+    UnknownScenarioError,
+    get_scenario,
+    scenarios,
+)
 
 router = APIRouter(prefix="/api", tags=["arena"])
 
 
-@router.get("/scenario", response_model=ScenarioDescriptor)
-def get_scenario() -> ScenarioDescriptor:
-    """Describe the active scenario and its tunable levers (for the UI)."""
-    scenario = baseline_scenario()
+def _descriptor(scenario: Scenario) -> ScenarioDescriptor:
     return ScenarioDescriptor(
         scenario_id=scenario.scenario_id,
         order_count=scenario.order_count,
@@ -50,17 +53,31 @@ def get_scenario() -> ScenarioDescriptor:
     )
 
 
+@router.get("/scenarios", response_model=list[ScenarioDescriptor])
+def list_scenarios() -> list[ScenarioDescriptor]:
+    """All playable scenarios with their tunable levers (for the UI)."""
+    return [_descriptor(scenario) for scenario in scenarios()]
+
+
 @router.post("/simulate", response_model=SimulateResponse)
 def post_simulate(request: SimulateRequest) -> SimulateResponse:
     """Run the deterministic simulation for the player's lever values.
 
-    Rejects with 422 when the requested lever moves exceed the scenario's
-    kaizen budget (the UI prevents this; the server stays authoritative).
+    Rejects with 404 for an unknown scenario id and 422 when the requested
+    lever moves exceed the scenario's kaizen budget (the UI prevents both; the
+    server stays authoritative).
     """
+    try:
+        scenario = get_scenario(request.scenario_id)
+    except UnknownScenarioError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "unknown_scenario", "scenario_id": error.scenario_id},
+        ) from error
     try:
         result = run_scenario(
             RunScenarioCommand(
-                scenario=baseline_scenario(),
+                scenario=scenario,
                 batch_size=request.batch_size,
                 release_interval=request.release_interval,
                 variance_factor=request.variance_factor,
