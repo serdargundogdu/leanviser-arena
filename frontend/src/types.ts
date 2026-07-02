@@ -21,9 +21,7 @@ export interface ScenarioDescriptor {
 
 export interface SimulateRequest {
   scenario_id: string;
-  batch_size: number;
-  release_interval: number;
-  variance_factor: number;
+  levers: Record<string, number>;
 }
 
 export interface ScoreDto {
@@ -59,8 +57,6 @@ export interface SimulateResponse {
   completion_times: number[];
   value_added_mean: number;
   waiting_mean: number;
-  applied_batch_size: number;
-  applied_release_interval: number;
-  applied_variance_factor: number;
+  applied_levers: Record<string, number>;
   credit_cost: number;
 }

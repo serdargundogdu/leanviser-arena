@@ -24,9 +24,11 @@ def _run(scenario_id: str, batch_size: float, release_interval: float, vf: float
     return run_scenario(
         RunScenarioCommand(
             scenario=get_scenario(scenario_id),
-            batch_size=batch_size,
-            release_interval=release_interval,
-            variance_factor=vf,
+            lever_values={
+                "batch_size": batch_size,
+                "release_interval": release_interval,
+                "variance_factor": vf,
+            },
         )
     )
 
@@ -44,10 +46,9 @@ def test_get_scenario_unknown_id_raises() -> None:
 
 def test_unstable_full_fix_is_exactly_the_budget() -> None:
     scenario = unstable_line_scenario()
-    defaults = tuple(lever.default for lever in scenario.levers())
-    assert scenario.credit_cost(*defaults) == 0.0
+    assert scenario.credit_cost({}) == 0.0
     # Standard work 1.0→0.25 is the whole fix: 6 credits = the whole budget.
-    assert scenario.credit_cost(1, 7.5, 0.25) == pytest.approx(6.0)
+    assert scenario.credit_cost({"variance_factor": 0.25}) == pytest.approx(6.0)
     assert scenario.kaizen_budget == pytest.approx(6.0)
 
 
@@ -73,12 +74,7 @@ def test_api_lists_both_scenarios() -> None:
 def test_api_simulate_accepts_scenario_id() -> None:
     response = client.post(
         "/api/simulate",
-        json={
-            "scenario_id": "unstable_line",
-            "batch_size": 1,
-            "release_interval": 7.5,
-            "variance_factor": 0.25,
-        },
+        json={"scenario_id": "unstable_line", "levers": {"variance_factor": 0.25}},
     )
     assert response.status_code == 200
     body = response.json()
@@ -89,7 +85,7 @@ def test_api_simulate_accepts_scenario_id() -> None:
 def test_api_unknown_scenario_returns_404() -> None:
     response = client.post(
         "/api/simulate",
-        json={"scenario_id": "no_such_line", "batch_size": 1, "release_interval": 6.0},
+        json={"scenario_id": "no_such_line", "levers": {}},
     )
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "unknown_scenario"

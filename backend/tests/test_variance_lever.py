@@ -13,16 +13,20 @@ def _run(batch_size: float, release_interval: float, variance_factor: float):
     return run_scenario(
         RunScenarioCommand(
             scenario=baseline_scenario(),
-            batch_size=batch_size,
-            release_interval=release_interval,
-            variance_factor=variance_factor,
+            lever_values={
+                "batch_size": batch_size,
+                "release_interval": release_interval,
+                "variance_factor": variance_factor,
+            },
         )
     )
 
 
 def test_build_config_scales_station_variances_not_means() -> None:
     scenario = baseline_scenario()
-    config = scenario.build_config(1, 6.0, variance_factor=0.5)
+    config = scenario.build_config(
+        {"batch_size": 1, "release_interval": 6.0, "variance_factor": 0.5}
+    )
     for station, base in zip(config.stations, scenario.base_stations, strict=True):
         assert station.cycle_time_variance == pytest.approx(base.cycle_time_variance * 0.5)
         assert station.cycle_time_mean == base.cycle_time_mean
@@ -32,8 +36,10 @@ def test_build_config_scales_station_variances_not_means() -> None:
 
 def test_variance_factor_is_clamped() -> None:
     scenario = baseline_scenario()
-    assert scenario.applied_variance_factor(0.1) == scenario.variance_lever.minimum
-    assert scenario.applied_variance_factor(2.0) == scenario.variance_lever.maximum
+    low = scenario.applied_values({"variance_factor": 0.1})["variance_factor"]
+    high = scenario.applied_values({"variance_factor": 2.0})["variance_factor"]
+    assert low == scenario.variance_lever.minimum
+    assert high == scenario.variance_lever.maximum
 
 
 def test_standard_work_improves_takt_paced_flow() -> None:

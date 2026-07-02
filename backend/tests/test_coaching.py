@@ -15,7 +15,13 @@ def _codes(
     batch_size: float, release_interval: float, variance_factor: float = 1.0
 ) -> set[InsightCode]:
     scenario = baseline_scenario()
-    config = scenario.build_config(batch_size, release_interval, variance_factor)
+    lever_values = {
+        "batch_size": batch_size,
+        "release_interval": release_interval,
+        "variance_factor": variance_factor,
+    }
+    config = scenario.build_config(lever_values)
+    applied = scenario.applied_values(lever_values)
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
@@ -25,7 +31,7 @@ def _codes(
         batch_size=config.batch_size,
         release_interval=config.release_interval,
         takt_time=config.takt_time,
-        variance_factor=scenario.applied_variance_factor(variance_factor),
+        variance_factor=applied["variance_factor"],
     )
     return {insight.code for insight in insights}
 

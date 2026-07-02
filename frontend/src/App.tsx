@@ -43,12 +43,7 @@ export function App() {
     setError(null);
     try {
       setResult(
-        await runSimulation({
-          scenario_id: scenarioId,
-          batch_size: levers.batch_size,
-          release_interval: levers.release_interval,
-          variance_factor: levers.variance_factor ?? 1.0,
-        }),
+        await runSimulation({ scenario_id: scenarioId, levers }),
       );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));

@@ -1,17 +1,24 @@
-"""RunScenario use case — the v0.2 game loop, server-authoritative.
+"""RunScenario use case — the game loop, server-authoritative.
 
-Given a scenario and the player's lever values, it builds the effective line
-config (seed stays server-side), runs the deterministic DES, computes flow
-metrics and the composite score, and assembles a debrief for the UI. No
-persistence, no auth (both deferred).
+Given a scenario and the player's lever values (a key→value mapping; missing
+keys fall back to lever defaults), it builds the effective line config (seed
+stays server-side), runs the deterministic DES, computes flow metrics and the
+composite score, and assembles a debrief for the UI. No persistence, no auth
+(both deferred).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 
 from app.domain.coaching.coach import Insight, diagnose
-from app.domain.scenario.scenario import Scenario
+from app.domain.scenario.scenario import (
+    LEVER_BATCH_SIZE,
+    LEVER_RELEASE_INTERVAL,
+    LEVER_VARIANCE_FACTOR,
+    Scenario,
+)
 from app.domain.scoring.score import Score, compute_score
 from app.domain.simulation.engine import simulate
 from app.domain.simulation.metrics import SimulationMetrics, compute_metrics
@@ -20,13 +27,11 @@ from app.domain.simulation.metrics import SimulationMetrics, compute_metrics
 @dataclass(frozen=True)
 class RunScenarioCommand:
     """Player input. ``actor_id`` / ``company_id`` are forward-compat identity
-    seams (no auth/storage in v0.2); never personal data.
+    seams (no auth/storage yet); never personal data.
     """
 
     scenario: Scenario
-    batch_size: float
-    release_interval: float
-    variance_factor: float = 1.0
+    lever_values: Mapping[str, float] = field(default_factory=dict)
     actor_id: str | None = None
     company_id: str | None = None
 
@@ -36,8 +41,8 @@ class DebriefResult:
     """Everything the debrief UI needs from one run.
 
     ``value_added_mean`` + ``waiting_mean`` decompose the mean lead time for the
-    hero flow-time chart (value-adding vs waiting). ``applied_*`` echo the
-    clamped lever values actually used.
+    hero flow-time chart (value-adding vs waiting). ``applied_levers`` echoes
+    the clamped lever values actually used, keyed by lever key.
     """
 
     metrics: SimulationMetrics
@@ -49,22 +54,16 @@ class DebriefResult:
     completion_times: tuple[float, ...]
     value_added_mean: float
     waiting_mean: float
-    applied_batch_size: int
-    applied_release_interval: float
-    applied_variance_factor: float
+    applied_levers: dict[str, float]
     credit_cost: float
 
 
 def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     scenario = command.scenario
-    applied_variance = scenario.applied_variance_factor(command.variance_factor)
+    applied = scenario.applied_values(command.lever_values)
     # Game rule: lever moves must fit the kaizen budget (raises if exceeded).
-    credit_cost = scenario.validate_budget(
-        command.batch_size, command.release_interval, command.variance_factor
-    )
-    config = scenario.build_config(
-        command.batch_size, command.release_interval, command.variance_factor
-    )
+    credit_cost = scenario.validate_budget(command.lever_values)
+    config = scenario.build_config(command.lever_values)
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
@@ -72,10 +71,10 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         diagnose(
             metrics=metrics,
             score=score,
-            batch_size=config.batch_size,
-            release_interval=config.release_interval,
+            batch_size=int(applied[LEVER_BATCH_SIZE]),
+            release_interval=applied[LEVER_RELEASE_INTERVAL],
             takt_time=config.takt_time,
-            variance_factor=applied_variance,
+            variance_factor=applied[LEVER_VARIANCE_FACTOR],
         )
     )
 
@@ -92,8 +91,6 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         completion_times=tuple(o.completion_time for o in log.orders),
         value_added_mean=value_added_mean,
         waiting_mean=waiting_mean,
-        applied_batch_size=config.batch_size,
-        applied_release_interval=config.release_interval,
-        applied_variance_factor=applied_variance,
+        applied_levers=applied,
         credit_cost=credit_cost,
     )

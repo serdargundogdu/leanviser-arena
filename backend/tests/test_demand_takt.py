@@ -19,7 +19,7 @@ from app.domain.simulation.metrics import SimulationMetrics, compute_metrics
 
 def _run_domain(batch_size: float, release_interval: float) -> tuple[SimulationMetrics, Score]:
     scenario = baseline_scenario()
-    config = scenario.build_config(batch_size, release_interval)
+    config = scenario.build_config({"batch_size": batch_size, "release_interval": release_interval})
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)

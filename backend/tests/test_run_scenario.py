@@ -8,8 +8,7 @@ def _run(batch_size: float, release_interval: float):
     return run_scenario(
         RunScenarioCommand(
             scenario=baseline_scenario(),
-            batch_size=batch_size,
-            release_interval=release_interval,
+            lever_values={"batch_size": batch_size, "release_interval": release_interval},
         )
     )
 
@@ -37,8 +36,8 @@ def test_applied_lever_values_are_clamped() -> None:
     # (-5 → min 0 = free): both directions covered while staying in budget.
     scenario = baseline_scenario()
     result = _run(batch_size=1000, release_interval=-5.0)
-    assert result.applied_batch_size == int(scenario.batch_size_lever.maximum)
-    assert result.applied_release_interval == scenario.release_interval_lever.minimum
+    assert result.applied_levers["batch_size"] == scenario.batch_size_lever.maximum
+    assert result.applied_levers["release_interval"] == scenario.release_interval_lever.minimum
 
 
 def test_arrival_and_departure_times_for_cfd() -> None:

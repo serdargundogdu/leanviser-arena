@@ -28,7 +28,7 @@ def test_lever_clamp() -> None:
 
 def test_build_config_applies_lever_values() -> None:
     scenario = baseline_scenario()
-    config = scenario.build_config(batch_size=3, release_interval=6.0)
+    config = scenario.build_config({"batch_size": 3, "release_interval": 6.0})
     assert config.batch_size == 3
     assert config.release_interval == 6.0
     # Server-owned parts come from the scenario, not the client.
@@ -40,11 +40,18 @@ def test_build_config_applies_lever_values() -> None:
 
 def test_build_config_clamps_out_of_range_input() -> None:
     scenario = baseline_scenario()
-    config = scenario.build_config(batch_size=1000, release_interval=-5.0)
+    config = scenario.build_config({"batch_size": 1000, "release_interval": -5.0})
     assert config.batch_size == int(scenario.batch_size_lever.maximum)
     assert config.release_interval == scenario.release_interval_lever.minimum
 
 
 def test_batch_size_is_rounded_to_int() -> None:
-    config = baseline_scenario().build_config(batch_size=3.7, release_interval=0.0)
+    config = baseline_scenario().build_config({"batch_size": 3.7})
     assert config.batch_size == 4
+
+
+def test_missing_lever_keys_fall_back_to_defaults() -> None:
+    scenario = baseline_scenario()
+    config = scenario.build_config({})
+    assert config.batch_size == int(scenario.batch_size_lever.default)
+    assert config.release_interval == scenario.release_interval_lever.default

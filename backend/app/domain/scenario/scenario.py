@@ -11,6 +11,7 @@ out-of-budget physics (e.g. the over-pacing thesis guards) directly.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from app.domain.scoring.score import ScoreWeights
@@ -93,49 +94,34 @@ class Scenario:
     def levers(self) -> tuple[Lever, ...]:
         return (self.batch_size_lever, self.release_interval_lever, self.variance_lever)
 
-    def applied_batch_size(self, batch_size: float) -> int:
-        """The batch size the engine would actually use (clamped, whole units)."""
-        return int(round(self.batch_size_lever.clamp(batch_size)))
+    def applied_values(self, lever_values: Mapping[str, float]) -> dict[str, float]:
+        """The lever values that would actually run, keyed by lever key.
 
-    def applied_release_interval(self, release_interval: float) -> float:
-        return self.release_interval_lever.clamp(release_interval)
-
-    def applied_variance_factor(self, variance_factor: float) -> float:
-        return self.variance_lever.clamp(variance_factor)
-
-    def credit_cost(
-        self,
-        batch_size: float,
-        release_interval: float,
-        variance_factor: float = 1.0,
-    ) -> float:
-        """Credits the requested lever values cost, priced on APPLIED values —
-        the cost always matches what ``build_config`` would actually run.
+        Missing keys fall back to the lever default; everything is clamped and
+        whole-unit levers (batch) are rounded. Cost and config are both derived
+        from THIS, so the price always matches what runs.
         """
-        return (
-            self.batch_size_lever.cost(self.applied_batch_size(batch_size))
-            + self.release_interval_lever.cost(self.applied_release_interval(release_interval))
-            + self.variance_lever.cost(self.applied_variance_factor(variance_factor))
-        )
+        applied: dict[str, float] = {}
+        for lever in self.levers():
+            value = lever.clamp(lever_values.get(lever.key, lever.default))
+            if lever.key == LEVER_BATCH_SIZE:
+                value = float(int(round(value)))
+            applied[lever.key] = value
+        return applied
 
-    def validate_budget(
-        self,
-        batch_size: float,
-        release_interval: float,
-        variance_factor: float = 1.0,
-    ) -> float:
+    def credit_cost(self, lever_values: Mapping[str, float]) -> float:
+        """Credits the requested lever values cost, priced on APPLIED values."""
+        applied = self.applied_values(lever_values)
+        return sum(lever.cost(applied[lever.key]) for lever in self.levers())
+
+    def validate_budget(self, lever_values: Mapping[str, float]) -> float:
         """Return the credit cost, raising ``KaizenBudgetExceededError`` if over budget."""
-        cost = self.credit_cost(batch_size, release_interval, variance_factor)
+        cost = self.credit_cost(lever_values)
         if cost > self.kaizen_budget + 1e-9:
             raise KaizenBudgetExceededError(cost, self.kaizen_budget)
         return cost
 
-    def build_config(
-        self,
-        batch_size: float,
-        release_interval: float,
-        variance_factor: float = 1.0,
-    ) -> LineConfig:
+    def build_config(self, lever_values: Mapping[str, float]) -> LineConfig:
         """Apply (clamped) lever values to produce the effective line config.
 
         The seed and line layout come from the scenario, never the client. The
@@ -143,7 +129,8 @@ class Scenario:
         work). Does NOT enforce the budget (see module docstring) — that is a
         game rule applied by the RunScenario use case.
         """
-        factor = self.applied_variance_factor(variance_factor)
+        applied = self.applied_values(lever_values)
+        factor = applied[LEVER_VARIANCE_FACTOR]
         stations = tuple(
             replace(station, cycle_time_variance=station.cycle_time_variance * factor)
             for station in self.base_stations
@@ -154,8 +141,8 @@ class Scenario:
             delivery_window=self.delivery_window,
             takt_time=self.takt_time,
             seed=self.seed,
-            batch_size=self.applied_batch_size(batch_size),
-            release_interval=self.applied_release_interval(release_interval),
+            batch_size=int(applied[LEVER_BATCH_SIZE]),
+            release_interval=applied[LEVER_RELEASE_INTERVAL],
         )
 
 

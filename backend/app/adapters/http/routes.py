@@ -75,14 +75,7 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
             detail={"code": "unknown_scenario", "scenario_id": error.scenario_id},
         ) from error
     try:
-        result = run_scenario(
-            RunScenarioCommand(
-                scenario=scenario,
-                batch_size=request.batch_size,
-                release_interval=request.release_interval,
-                variance_factor=request.variance_factor,
-            )
-        )
+        result = run_scenario(RunScenarioCommand(scenario=scenario, lever_values=request.levers))
     except KaizenBudgetExceededError as error:
         raise HTTPException(
             status_code=422,
@@ -105,8 +98,6 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         completion_times=list(result.completion_times),
         value_added_mean=result.value_added_mean,
         waiting_mean=result.waiting_mean,
-        applied_batch_size=result.applied_batch_size,
-        applied_release_interval=result.applied_release_interval,
-        applied_variance_factor=result.applied_variance_factor,
+        applied_levers=result.applied_levers,
         credit_cost=result.credit_cost,
     )

@@ -30,10 +30,9 @@ class ScenarioDescriptor(BaseModel):
 
 class SimulateRequest(BaseModel):
     scenario_id: str = Field(default="baseline", description="which scenario to run")
-    batch_size: float = Field(description="transfer batch size lever value")
-    release_interval: float = Field(description="release interval lever value")
-    variance_factor: float = Field(
-        default=1.0, description="standard-work lever: cycle-time variance multiplier"
+    levers: dict[str, float] = Field(
+        default_factory=dict,
+        description="lever values keyed by lever key; missing keys use defaults",
     )
 
 
@@ -70,7 +69,5 @@ class SimulateResponse(BaseModel):
     completion_times: list[float]
     value_added_mean: float
     waiting_mean: float
-    applied_batch_size: int
-    applied_release_interval: float
-    applied_variance_factor: float
+    applied_levers: dict[str, float]
     credit_cost: float
