@@ -5,7 +5,7 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.6 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.7 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
@@ -17,6 +17,9 @@ bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 > içinde görselleştirir.
 > **v0.6:** kaizen kredi bütçesi — kaldıraç hamleleri kredi harcar; iyileştirme
 > bedava değildir, doğru tahsis kazandırır (sunucu bütçeyi uygular, aşım 422).
+> **v0.7:** 3. kaldıraç **Standart İş** (değişkenlik azaltma) — bütçe 22;
+> değişkenlik = kuyruğun kaynağı dersi (74 → 89), ama standart iş büyük
+> partiyi kurtaramaz.
 
 ## Mimari
 
@@ -31,8 +34,8 @@ adapters/  →  application/  →  domain/
   sonuç.
 - `backend/app/domain/scoring/` — composite skor (saf): akış kalitesi ×
   teslim güvenilirliği (kapı); throughput terim değil.
-- `backend/app/domain/scenario/` — tek `baseline` senaryo + 2 kaldıraç +
-  kaizen kredi bütçesi (kaldıraç hamlesi = kredi; sunucu doğrular).
+- `backend/app/domain/scenario/` — tek `baseline` senaryo + 3 kaldıraç (parti,
+  salım, standart iş) + kaizen kredi bütçesi (hamle = kredi; sunucu doğrular).
 - `backend/app/domain/coaching/` — kural-tabanlı koçluk (saf; dil-nötr `Insight`).
 - `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
   (engine + metrics + score'u birleştiren ince orkestrasyon).
@@ -73,26 +76,30 @@ uv run pytest
 from app.application.run_scenario import RunScenarioCommand, run_scenario
 from app.domain.scenario.scenario import baseline_scenario
 
-# Kaldıraçlar: parti=1 (tek-parça akış), salım=6 (~takt/dengeli)
+# İki-kaldıraç düzeltmesi: parti=1 (tek-parça), salım=6 (~takt) → 16 kredi
 lean = run_scenario(
     RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=6.0)
 )
 print(round(lean.score.composite, 1))    # ~74 / 100
+
+# Tam düzeltme: + standart iş (değişkenlik 0.25) → 22 kredi = tüm bütçe
+full = run_scenario(
+    RunScenarioCommand(
+        scenario=baseline_scenario(), batch_size=1, release_interval=6.0, variance_factor=0.25
+    )
+)
+print(round(full.score.composite, 1))    # ~89 / 100
 
 # Aşırı üretim (parti=5, flood): akış çöker — çıktı ödüllenmez, WIP şişer
 push = run_scenario(
     RunScenarioCommand(scenario=baseline_scenario(), batch_size=5, release_interval=0.0)
 )
 print(round(push.score.composite, 1))    # ~0 / 100
-
-# Hattı starve etmek (parti=1, salım=12): akış kusursuz ama talebe yetişmez
-starve = run_scenario(
-    RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=12.0)
-)
-print(round(starve.score.composite, 1))  # ~7 / 100 — teslim kapısı düşürür
 ```
 
-Ham DES motoruna `LineConfig` + `run_simulation` ile de erişilebilir
+Hattı starve etmek (salım=12) hem skoru çökertir (teslim kapısı) hem de 28
+krediyle **bütçe dışıdır** — `run_scenario` `KaizenBudgetExceededError`
+fırlatır. Ham DES motoruna `LineConfig` + `run_simulation` ile de erişilebilir
 (`delivery_window` = hedef temin süresi, mutlak tarih değil).
 
 ## Frontend — kurulum, çalıştırma, build
@@ -139,7 +146,7 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.7 adayı)
+## Sıradaki dilim (v0.8 adayı)
 
-3. kaldıraç (`wip_cap` — bütçeyi gerçek kıtlığa çevirir) + çoklu senaryo +
-skor tablosu. Kapsam bayrakları için `CLAUDE.md`.
+Çoklu senaryo + skor tablosu. (Pull/`wip_cap` → v2.0 çekme senaryosu.)
+Kapsam bayrakları için `CLAUDE.md`.

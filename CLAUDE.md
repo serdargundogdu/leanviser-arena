@@ -101,6 +101,8 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 | Tohum | `seed` |
 | Ayrık-olay simülasyonu | `DES` |
 | Skor | `score` |
+| Standart iş | `standardWork` (kaldıraç: `variance_factor`) |
+| Değişkenlik | `variance` |
 | Anonim benchmark | `anonymizedBenchmark` |
 | Yüzdelik | `percentile` |
 
@@ -139,10 +141,19 @@ döner; UI canlı maliyet + bar gösterir. NOT: `build_config` bütçe UYGULAMAZ
 (bilinçli) — tez/fizik testleri bütçe-dışı konfigleri domain seviyesinde
 problamaya devam eder (`test_demand_takt.py`, `test_coaching.py`).
 
+**v0.7'de yapıldı:** 3. kaldıraç — **Standart İş** (`variance_factor`): istasyon
+çevrim-süresi varyanslarını çarpanla ölçekler (1.0=mevcut, 0.25=tam yatırım;
+ortalamalar sabit → idealLeadTime değişmez). Bütçe 16→22 (= yeni tam düzeltme);
+ölçüldü: varyans merdiveni 74→81→86→**89**, standart iş büyük partiyi
+KURTARAMAZ (5,6,0.25 = 0 puan). Koçluk +1 kural (`high_variability`): akış
+takt'a oturmuş ama FE<0.85 ve varyansa yatırılmamışsa standart işi önerir.
+NOT: `wip_cap` kaldıracı bilinçli ertelendi — motorda cap salımı CONWIP'e
+çevirip `release_interval`'i etkisizleştiriyor; pull dersi kendi senaryosunu
+hak ediyor → v2.0 çekme challenge'ı.
+
 **Hâlâ YOK — sonraki dilimler:**
-- 3. kaldıraç (`wip_cap` — motorda hazır): bütçe 16'yı gerçek kıtlığa çevirir
-  (üç kaldıracın tamamına yetmez) → v0.7 adayı.
-- Çoklu senaryo/zorluk, skor tablosu → v0.7+.
+- Çoklu senaryo/zorluk, skor tablosu → v0.8+.
+- Pull/`wip_cap` (motor semantiği: cap + tempo bileşimi) → v2.0 çekme senaryosu.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.
