@@ -118,7 +118,7 @@ Kurulum / çalıştırma / test / deploy → `README.md`.
 
 ## Durum ve kapsam bayrakları
 
-**v0.2'de yapıldı:** composite skor · tek `baseline` senaryo + 2 akış kaldıracı
+**v0.2'de yapıldı:** composite skor · `baseline` senaryo + 2 akış kaldıracı
 (`batch_size`, `release_interval`) · durumsuz HTTP API · hero flow-time debrief UI.
 
 **v0.3'te yapıldı:** takt tabanlı talep programı (`due_k = k·takt + window`) +
@@ -151,8 +151,21 @@ NOT: `wip_cap` kaldıracı bilinçli ertelendi — motorda cap salımı CONWIP'e
 çevirip `release_interval`'i etkisizleştiriyor; pull dersi kendi senaryosunu
 hak ediyor → v2.0 çekme challenge'ı.
 
+**v0.8'de yapıldı:** çoklu senaryo — domain registry (`scenarios()` /
+`get_scenario()`), `GET /api/scenarios` (tekil uç kaldırıldı), simulate
+`scenario_id` alır (bilinmeyen → 404), UI'da senaryo kartları. İkinci senaryo
+**`unstable_line` (Kararsız Hat):** yapı zaten yalın (varsayılan parti 1,
+salım = takt 7.5 → darboğazda ~%20 kapasite payı) ama CV≈1 (varyans =
+ortalama²) → kuyruklar değişkenlik-güdümlü (Kingman); tek ödeyen düzeltme
+standart iş. Bütçe 6 = tam düzeltme. Ölçüldü (seed 42): varsayılan 45 →
+tam 81; yanlış tahsisler hamlesizlikten BETER (parti oynamak 30, takt'tan
+hızlı salım 38). Ders: baseline'ın ROI sırasının tersi — reçete kopyalama,
+teşhis et. NOT: ilk taslak (varyans ×3, yapı yarı-bozuk) ölçümde çürüdü —
+yapısal kusur varken varyans azaltmak ödemiyor; CV=1 + takt=darboğaz da
+(%100 doluluk) patlıyor; bu yüzden takt 7.5.
+
 **Hâlâ YOK — sonraki dilimler:**
-- Çoklu senaryo/zorluk, skor tablosu → v0.8+.
+- Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v0.9+.
 - Pull/`wip_cap` (motor semantiği: cap + tempo bileşimi) → v2.0 çekme senaryosu.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.

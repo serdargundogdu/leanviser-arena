@@ -5,7 +5,7 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.7 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.8 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
@@ -20,6 +20,9 @@ bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 > **v0.7:** 3. kaldıraç **Standart İş** (değişkenlik azaltma) — bütçe 22;
 > değişkenlik = kuyruğun kaynağı dersi (74 → 89), ama standart iş büyük
 > partiyi kurtaramaz.
+> **v0.8:** çoklu senaryo — **Kararsız Hat**: yapı yalın ama CV≈1; tek ödeyen
+> düzeltme standart iş (45 → 81), yanlış tahsis hamlesizlikten beter. Teşhis
+> reçeteden önce gelir.
 
 ## Mimari
 
@@ -34,13 +37,14 @@ adapters/  →  application/  →  domain/
   sonuç.
 - `backend/app/domain/scoring/` — composite skor (saf): akış kalitesi ×
   teslim güvenilirliği (kapı); throughput terim değil.
-- `backend/app/domain/scenario/` — tek `baseline` senaryo + 3 kaldıraç (parti,
-  salım, standart iş) + kaizen kredi bütçesi (hamle = kredi; sunucu doğrular).
+- `backend/app/domain/scenario/` — senaryo registry'si (`baseline` +
+  `unstable_line`), 3 kaldıraç (parti, salım, standart iş) + kaizen kredi
+  bütçesi (hamle = kredi; sunucu doğrular).
 - `backend/app/domain/coaching/` — kural-tabanlı koçluk (saf; dil-nötr `Insight`).
 - `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
   (engine + metrics + score'u birleştiren ince orkestrasyon).
-- `backend/app/adapters/http/` — FastAPI: `GET /health`, `GET /api/scenario`,
-  `POST /api/simulate`. Kalıcılık/auth YOK (ertelendi).
+- `backend/app/adapters/http/` — FastAPI: `GET /health`, `GET /api/scenarios`,
+  `POST /api/simulate` (`scenario_id` ile). Kalıcılık/auth YOK (ertelendi).
 - `frontend/` — Vite + React + TS, 2D debrief UI (kaldıraçlar + skor kartı +
   koçluk paneli + flow-time röntgeni + kümülatif akış diyagramı). 3D yok.
 
@@ -146,7 +150,8 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.8 adayı)
+## Sıradaki dilim (v0.9 adayı)
 
-Çoklu senaryo + skor tablosu. (Pull/`wip_cap` → v2.0 çekme senaryosu.)
-Kapsam bayrakları için `CLAUDE.md`.
+Skor tablosu / koşu geçmişi — **kalıcılık (DB) kararı gerektirir** (izole
+keşif bayrağına dokunur; ayrı insan kararı). Pull/`wip_cap` → v2.0 çekme
+senaryosu. Kapsam bayrakları için `CLAUDE.md`.
