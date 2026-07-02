@@ -10,6 +10,10 @@ const LABELS: Record<string, { label: string; hint: string }> = {
     label: "Salım Aralığı",
     hint: "0 = flood (aşırı üretim); artırınca salım dengelenir.",
   },
+  variance_factor: {
+    label: "Standart İş (değişkenlik)",
+    hint: "1.0 = mevcut durum; düşürdükçe çevrim süreleri kararlılaşır (standart iş yatırımı).",
+  },
 };
 
 interface Props {

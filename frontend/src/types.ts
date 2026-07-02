@@ -22,6 +22,7 @@ export interface ScenarioDescriptor {
 export interface SimulateRequest {
   batch_size: number;
   release_interval: number;
+  variance_factor: number;
 }
 
 export interface ScoreDto {
@@ -59,5 +60,6 @@ export interface SimulateResponse {
   waiting_mean: number;
   applied_batch_size: number;
   applied_release_interval: number;
+  applied_variance_factor: number;
   credit_cost: number;
 }

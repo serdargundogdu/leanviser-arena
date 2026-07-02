@@ -18,6 +18,10 @@ const COPY: Record<string, { title: string; tip: string }> = {
     title: "Talebe yetişemiyorsun",
     tip: "Siparişler takt programının gerisinde kalıyor.",
   },
+  high_variability: {
+    title: "Değişkenlik akışını yiyor",
+    tip: "Akış düzgün ama çevrim süreleri oynak; kalan bekleme bundan. Standart işe yatır.",
+  },
   balanced_flow: {
     title: "Dengeli akış",
     tip: "Takt'a yakın salım ve küçük parti — yalın akışın özü bu.",

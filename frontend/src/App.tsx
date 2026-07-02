@@ -23,6 +23,7 @@ export function App() {
         await runSimulation({
           batch_size: levers.batch_size,
           release_interval: levers.release_interval,
+          variance_factor: levers.variance_factor ?? 1.0,
         }),
       );
     } catch (caught) {
@@ -71,7 +72,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.6</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.7</p>
       </header>
 
       {error && (
