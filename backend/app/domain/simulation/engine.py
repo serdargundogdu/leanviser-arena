@@ -5,11 +5,17 @@ bit-identical ``EventLog``. All randomness comes from a single
 ``random.Random(seed)``; event ties break on a monotonic sequence counter, so
 the processing order — and therefore the RNG draw order — is a total order.
 
-Mechanics (v0.1):
+Mechanics:
   * N stations in series, one server each (single-piece processing per station).
-  * PUSH release: ``order_count`` orders enter station 0, paced by
-    ``release_interval`` (0 = flood at t=0). An optional ``wip_cap`` throttles
-    releases CONWIP-style — a new order enters only as one departs.
+  * RELEASE GATE: order ``k`` becomes ELIGIBLE at ``k * release_interval``
+    (0 = flood at t=0) and actually enters the line only when the optional
+    ``wip_cap`` allows (WIP < cap). Blocked orders wait OUTSIDE the system in
+    FIFO order; each departure admits the next one at that instant. The two
+    controls therefore COMPOSE: no cap = pure paced push; cap + flood =
+    classic CONWIP pull; cap + pacing = paced release with a WIP ceiling.
+    An order's lead time starts at actual entry (release), not eligibility —
+    the takt-based demand schedule still judges delivery by completion time,
+    so holding orders outside cannot game the delivery gate.
   * TRANSFER BATCHING: a finished unit waits at its station until ``batch_size``
     units have accumulated, then the whole batch moves downstream at once. This
     is why larger batches inflate lead time: early finishers wait for batchmates.
@@ -102,17 +108,12 @@ def simulate(config: LineConfig) -> EventLog:
         wip += delta
         wip_samples.append((time, wip))
 
-    # Release management. Without a WIP cap, all releases are pre-scheduled by
-    # time. With a cap (CONWIP), only the initial window is released; each
-    # departure pulls the next pending order in.
-    pending: deque[Order] = deque(orders)
-    if config.wip_cap is None:
-        for k, order in enumerate(orders):
-            schedule(k * config.release_interval, _ARRIVAL, 0, order)
-        pending.clear()
-    else:
-        for _ in range(min(config.wip_cap, len(orders))):
-            schedule(0.0, _ARRIVAL, 0, pending.popleft())
+    # Release gate. Every order is scheduled at its ELIGIBILITY time; entry is
+    # gated by the WIP cap in on_arrival. Blocked orders wait outside (FIFO)
+    # and are admitted one-per-departure in flush_batch.
+    blocked: deque[Order] = deque()
+    for k, order in enumerate(orders):
+        schedule(k * config.release_interval, _ARRIVAL, 0, order)
 
     def sample_cycle_time(station_idx: int) -> float:
         spec = config.stations[station_idx]
@@ -138,15 +139,19 @@ def simulate(config: LineConfig) -> EventLog:
             for order in batch:
                 order.completion_time = time
                 record_wip(time, -1)
-                # CONWIP: one out, one in.
-                if config.wip_cap is not None and pending:
-                    schedule(time, _ARRIVAL, 0, pending.popleft())
+                # One out → the next blocked (eligible) order may come in.
+                if blocked:
+                    schedule(time, _ARRIVAL, 0, blocked.popleft())
         else:
             for order in batch:
                 schedule(time, _ARRIVAL, station_idx + 1, order)
 
     def on_arrival(time: float, station_idx: int, order: Order) -> None:
         if station_idx == 0:
+            # The gate: an eligible order enters only if the cap allows.
+            if config.wip_cap is not None and wip >= config.wip_cap:
+                blocked.append(order)
+                return
             order.release_time = time
             record_wip(time, +1)
         queues[station_idx].append(order)
