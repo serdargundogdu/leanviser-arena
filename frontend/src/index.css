@@ -67,6 +67,58 @@ body {
   color: var(--text);
 }
 
+/* Scenario picker */
+.scenarios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.scenario-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.scenario-card:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.scenario-card--active {
+  border-color: var(--accent);
+  background: rgba(53, 196, 143, 0.08);
+}
+
+.scenario-card__name {
+  font-weight: 700;
+}
+
+.scenario-card--active .scenario-card__name {
+  color: var(--accent);
+}
+
+.scenario-card__desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.scenario-card__meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
 .app__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -499,7 +551,8 @@ input[type="range"] {
 }
 
 @media (max-width: 720px) {
-  .app__grid {
+  .app__grid,
+  .scenarios {
     grid-template-columns: 1fr;
   }
 }

@@ -2,10 +2,10 @@
 
 import type { ScenarioDescriptor, SimulateRequest, SimulateResponse } from "./types";
 
-export async function fetchScenario(): Promise<ScenarioDescriptor> {
-  const response = await fetch("/api/scenario");
+export async function fetchScenarios(): Promise<ScenarioDescriptor[]> {
+  const response = await fetch("/api/scenarios");
   if (!response.ok) {
-    throw new Error(`Senaryo alınamadı (HTTP ${response.status})`);
+    throw new Error(`Senaryolar alınamadı (HTTP ${response.status})`);
   }
   return response.json();
 }

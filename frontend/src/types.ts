@@ -20,6 +20,7 @@ export interface ScenarioDescriptor {
 }
 
 export interface SimulateRequest {
+  scenario_id: string;
   batch_size: number;
   release_interval: number;
   variance_factor: number;
