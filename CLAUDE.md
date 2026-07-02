@@ -131,9 +131,18 @@ kaldıraca-bağlı dil-nötr `Insight` kodları (UI Türkçe'ye çevirir); debri
 salım/tamamlanma zamanlarını açar; debrief'te salınan vs tamamlanan eğrileri +
 WIP bandı (bağımlılıksız SVG). Additive; motor/skor dokunulmadı.
 
+**v0.6'da yapıldı:** kaizen kredi bütçesi — kaldıraç hamleleri kredi harcar
+(varsayılan bedava; maliyet UYGULANAN değer üstünden), `baseline` bütçesi 16 =
+tam düzeltmenin maliyeti (ölçüldü: 15 kredi kötü tahsis ≈ 35 puan, 16 doğru
+tahsis ≈ 74). Sunucu-otoriter: `run_scenario` bütçeyi uygular, API aşımı 422
+döner; UI canlı maliyet + bar gösterir. NOT: `build_config` bütçe UYGULAMAZ
+(bilinçli) — tez/fizik testleri bütçe-dışı konfigleri domain seviyesinde
+problamaya devam eder (`test_demand_takt.py`, `test_coaching.py`).
+
 **Hâlâ YOK — sonraki dilimler:**
-- Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo/zorluk → v0.6+.
-- Skor tablosu / debrief zenginleştirmeleri → v0.6+.
+- 3. kaldıraç (`wip_cap` — motorda hazır): bütçe 16'yı gerçek kıtlığa çevirir
+  (üç kaldıracın tamamına yetmez) → v0.7 adayı.
+- Çoklu senaryo/zorluk, skor tablosu → v0.7+.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.

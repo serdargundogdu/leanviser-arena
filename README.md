@@ -5,7 +5,7 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.5 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.6 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
@@ -15,6 +15,8 @@ bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 > **v0.4:** kural-tabanlı koçluk ("FATİH USTA diyor ki") — skoru açıklayan ipuçları.
 > **v0.5:** Kümülatif Akış Diyagramı (CFD) — WIP ve temin süresini zaman
 > içinde görselleştirir.
+> **v0.6:** kaizen kredi bütçesi — kaldıraç hamleleri kredi harcar; iyileştirme
+> bedava değildir, doğru tahsis kazandırır (sunucu bütçeyi uygular, aşım 422).
 
 ## Mimari
 
@@ -29,7 +31,8 @@ adapters/  →  application/  →  domain/
   sonuç.
 - `backend/app/domain/scoring/` — composite skor (saf): akış kalitesi ×
   teslim güvenilirliği (kapı); throughput terim değil.
-- `backend/app/domain/scenario/` — tek `baseline` senaryo + 2 kaldıraç.
+- `backend/app/domain/scenario/` — tek `baseline` senaryo + 2 kaldıraç +
+  kaizen kredi bütçesi (kaldıraç hamlesi = kredi; sunucu doğrular).
 - `backend/app/domain/coaching/` — kural-tabanlı koçluk (saf; dil-nötr `Insight`).
 - `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
   (engine + metrics + score'u birleştiren ince orkestrasyon).
@@ -136,7 +139,7 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.6 adayı)
+## Sıradaki dilim (v0.7 adayı)
 
-Kredi sistemi (kaldıraç maliyeti/bütçe) + çoklu senaryo + skor tablosu.
-Kapsam bayrakları için `CLAUDE.md`.
+3. kaldıraç (`wip_cap` — bütçeyi gerçek kıtlığa çevirir) + çoklu senaryo +
+skor tablosu. Kapsam bayrakları için `CLAUDE.md`.
