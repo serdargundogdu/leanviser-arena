@@ -63,6 +63,7 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
                 scenario=baseline_scenario(),
                 batch_size=request.batch_size,
                 release_interval=request.release_interval,
+                variance_factor=request.variance_factor,
             )
         )
     except KaizenBudgetExceededError as error:
@@ -89,5 +90,6 @@ def post_simulate(request: SimulateRequest) -> SimulateResponse:
         waiting_mean=result.waiting_mean,
         applied_batch_size=result.applied_batch_size,
         applied_release_interval=result.applied_release_interval,
+        applied_variance_factor=result.applied_variance_factor,
         credit_cost=result.credit_cost,
     )

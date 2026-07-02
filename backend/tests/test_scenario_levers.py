@@ -3,14 +3,15 @@
 from app.domain.scenario.scenario import (
     LEVER_BATCH_SIZE,
     LEVER_RELEASE_INTERVAL,
+    LEVER_VARIANCE_FACTOR,
     baseline_scenario,
 )
 
 
-def test_baseline_exposes_two_levers() -> None:
+def test_baseline_exposes_three_levers() -> None:
     scenario = baseline_scenario()
     keys = {lever.key for lever in scenario.levers()}
-    assert keys == {LEVER_BATCH_SIZE, LEVER_RELEASE_INTERVAL}
+    assert keys == {LEVER_BATCH_SIZE, LEVER_RELEASE_INTERVAL, LEVER_VARIANCE_FACTOR}
 
 
 def test_ideal_lead_time_is_sum_of_cycle_means() -> None:

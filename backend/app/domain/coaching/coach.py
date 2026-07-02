@@ -22,6 +22,10 @@ _LOW_FLOW_EFFICIENCY = 0.6
 _POOR_DELIVERY = 0.9
 _MISSED_DEMAND = 0.5
 _BALANCED_COMPOSITE = 70.0
+_VARIABILITY_HEADROOM_FE = 0.85  # flow otherwise sane, yet waiting persists
+_UNINVESTED_VARIANCE = 0.5  # standard-work lever mostly untouched
+_SMALL_BATCH = 2
+_NEAR_TAKT = 0.9  # release within ~10% of takt counts as takt-paced
 
 
 class Severity(StrEnum):
@@ -35,6 +39,7 @@ class InsightCode(StrEnum):
     FLOODING = "flooding"  # releasing faster than demand → WIP piles up
     LARGE_BATCH = "large_batch"  # transfer batch too big → early finishers wait
     MISSED_DEMAND = "missed_demand"  # behind the takt schedule (any cause)
+    HIGH_VARIABILITY = "high_variability"  # remaining waste is cycle-time noise
     BALANCED_FLOW = "balanced_flow"  # takt-paced, small batch → reward
     KEEP_TUNING = "keep_tuning"  # no dominant signal; nudge to keep adjusting
 
@@ -52,6 +57,7 @@ def diagnose(
     batch_size: int,
     release_interval: float,
     takt_time: float,
+    variance_factor: float = 1.0,
 ) -> list[Insight]:
     """Return coaching insights, most actionable first. Never empty."""
     insights: list[Insight] = []
@@ -71,6 +77,16 @@ def diagnose(
     # Behind the takt schedule for a reason other than over-pacing.
     if metrics.delivery_reliability < _MISSED_DEMAND and release_interval <= takt_time:
         insights.append(Insight(InsightCode.MISSED_DEMAND, Severity.CRITICAL))
+
+    # Flow is otherwise sane (small batch, takt-paced) yet waiting persists:
+    # the remaining waste is cycle-time variability — invest in standard work.
+    if (
+        batch_size <= _SMALL_BATCH
+        and release_interval >= takt_time * _NEAR_TAKT
+        and metrics.flow_efficiency < _VARIABILITY_HEADROOM_FE
+        and variance_factor > _UNINVESTED_VARIANCE
+    ):
+        insights.append(Insight(InsightCode.HIGH_VARIABILITY, Severity.WARNING))
 
     # Reward: balanced, takt-paced flow.
     if score.composite >= _BALANCED_COMPOSITE:

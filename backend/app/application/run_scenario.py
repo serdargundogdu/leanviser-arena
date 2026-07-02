@@ -26,6 +26,7 @@ class RunScenarioCommand:
     scenario: Scenario
     batch_size: float
     release_interval: float
+    variance_factor: float = 1.0
     actor_id: str | None = None
     company_id: str | None = None
 
@@ -50,14 +51,20 @@ class DebriefResult:
     waiting_mean: float
     applied_batch_size: int
     applied_release_interval: float
+    applied_variance_factor: float
     credit_cost: float
 
 
 def run_scenario(command: RunScenarioCommand) -> DebriefResult:
     scenario = command.scenario
+    applied_variance = scenario.applied_variance_factor(command.variance_factor)
     # Game rule: lever moves must fit the kaizen budget (raises if exceeded).
-    credit_cost = scenario.validate_budget(command.batch_size, command.release_interval)
-    config = scenario.build_config(command.batch_size, command.release_interval)
+    credit_cost = scenario.validate_budget(
+        command.batch_size, command.release_interval, command.variance_factor
+    )
+    config = scenario.build_config(
+        command.batch_size, command.release_interval, command.variance_factor
+    )
     log = simulate(config)
     metrics = compute_metrics(log, config.takt_time, config.delivery_window)
     score = compute_score(metrics, scenario.ideal_lead_time, scenario.weights)
@@ -68,6 +75,7 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
             batch_size=config.batch_size,
             release_interval=config.release_interval,
             takt_time=config.takt_time,
+            variance_factor=applied_variance,
         )
     )
 
@@ -86,5 +94,6 @@ def run_scenario(command: RunScenarioCommand) -> DebriefResult:
         waiting_mean=waiting_mean,
         applied_batch_size=config.batch_size,
         applied_release_interval=config.release_interval,
+        applied_variance_factor=applied_variance,
         credit_cost=credit_cost,
     )

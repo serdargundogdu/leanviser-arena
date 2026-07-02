@@ -31,6 +31,9 @@ class ScenarioDescriptor(BaseModel):
 class SimulateRequest(BaseModel):
     batch_size: float = Field(description="transfer batch size lever value")
     release_interval: float = Field(description="release interval lever value")
+    variance_factor: float = Field(
+        default=1.0, description="standard-work lever: cycle-time variance multiplier"
+    )
 
 
 class ScoreDto(BaseModel):
@@ -68,4 +71,5 @@ class SimulateResponse(BaseModel):
     waiting_mean: float
     applied_batch_size: int
     applied_release_interval: float
+    applied_variance_factor: float
     credit_cost: float

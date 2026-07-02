@@ -14,18 +14,16 @@ client = TestClient(app)
 
 def test_default_levers_are_free() -> None:
     scenario = baseline_scenario()
-    defaults = (
-        scenario.batch_size_lever.default,
-        scenario.release_interval_lever.default,
-    )
+    defaults = tuple(lever.default for lever in scenario.levers())
     assert scenario.credit_cost(*defaults) == 0.0
 
 
 def test_full_fix_costs_exactly_the_budget() -> None:
     scenario = baseline_scenario()
-    # batch 5→1 = 4 steps, release 0→6 = 12 steps (0.5 each) → 16 credits.
-    assert scenario.credit_cost(1, 6.0) == pytest.approx(16.0)
-    assert scenario.kaizen_budget == pytest.approx(16.0)
+    # batch 5→1 = 4, release 0→6 = 12, variance 1.0→0.25 = 6 → 22 credits.
+    assert scenario.credit_cost(1, 6.0) == pytest.approx(16.0)  # two-lever fix
+    assert scenario.credit_cost(1, 6.0, 0.25) == pytest.approx(22.0)
+    assert scenario.kaizen_budget == pytest.approx(22.0)
 
 
 def test_cost_is_priced_on_applied_values() -> None:
@@ -43,7 +41,7 @@ def test_run_scenario_rejects_over_budget() -> None:
             RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=12.0)
         )
     assert excinfo.value.cost == pytest.approx(28.0)
-    assert excinfo.value.budget == pytest.approx(16.0)
+    assert excinfo.value.budget == pytest.approx(22.0)
 
 
 def test_run_scenario_reports_spent_credits() -> None:
@@ -59,13 +57,17 @@ def test_api_rejects_over_budget_with_422() -> None:
     detail = response.json()["detail"]
     assert detail["code"] == "budget_exceeded"
     assert detail["cost"] == pytest.approx(28.0)
-    assert detail["budget"] == pytest.approx(16.0)
+    assert detail["budget"] == pytest.approx(22.0)
 
 
 def test_api_exposes_budget_and_costs() -> None:
     descriptor = client.get("/api/scenario").json()
-    assert descriptor["kaizen_budget"] == pytest.approx(16.0)
+    assert descriptor["kaizen_budget"] == pytest.approx(22.0)
     assert all(lever["cost_per_step"] > 0 for lever in descriptor["levers"])
 
-    body = client.post("/api/simulate", json={"batch_size": 1, "release_interval": 6.0}).json()
-    assert body["credit_cost"] == pytest.approx(16.0)
+    body = client.post(
+        "/api/simulate",
+        json={"batch_size": 1, "release_interval": 6.0, "variance_factor": 0.25},
+    ).json()
+    assert body["credit_cost"] == pytest.approx(22.0)
+    assert body["applied_variance_factor"] == pytest.approx(0.25)

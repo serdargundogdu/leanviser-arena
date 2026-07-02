@@ -14,7 +14,7 @@ def test_get_scenario() -> None:
     assert body["scenario_id"] == "baseline"
     assert body["takt_time"] > 0
     keys = {lever["key"] for lever in body["levers"]}
-    assert keys == {"batch_size", "release_interval"}
+    assert keys == {"batch_size", "release_interval", "variance_factor"}
 
 
 def test_post_simulate_with_defaults() -> None:

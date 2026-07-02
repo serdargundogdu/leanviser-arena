@@ -11,7 +11,7 @@ out-of-budget physics (e.g. the over-pacing thesis guards) directly.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.domain.scoring.score import ScoreWeights
 from app.domain.simulation.line import LineConfig, StationSpec
@@ -19,6 +19,7 @@ from app.domain.simulation.line import LineConfig, StationSpec
 # Lever keys — the contract shared with the HTTP API and the UI.
 LEVER_BATCH_SIZE = "batch_size"
 LEVER_RELEASE_INTERVAL = "release_interval"
+LEVER_VARIANCE_FACTOR = "variance_factor"
 
 
 class KaizenBudgetExceededError(ValueError):
@@ -55,10 +56,14 @@ class Lever:
 
 @dataclass(frozen=True)
 class Scenario:
-    """A fixed challenge. Server-owned line + two flow levers.
+    """A fixed challenge. Server-owned line + three flow levers.
 
     ``ideal_lead_time`` is the theoretical one-piece-flow floor (sum of station
     cycle-time means) used to normalize the lead-time pillar of the score.
+
+    The variance lever models STANDARD WORK investment: its value multiplies
+    every station's cycle-time variance (1.0 = as-is, lower = steadier work).
+    Means are untouched, so ``ideal_lead_time`` is unaffected.
     """
 
     scenario_id: str
@@ -70,6 +75,7 @@ class Scenario:
     kaizen_budget: float
     batch_size_lever: Lever
     release_interval_lever: Lever
+    variance_lever: Lever
     weights: ScoreWeights
 
     @property
@@ -77,7 +83,7 @@ class Scenario:
         return sum(station.cycle_time_mean for station in self.base_stations)
 
     def levers(self) -> tuple[Lever, ...]:
-        return (self.batch_size_lever, self.release_interval_lever)
+        return (self.batch_size_lever, self.release_interval_lever, self.variance_lever)
 
     def applied_batch_size(self, batch_size: float) -> int:
         """The batch size the engine would actually use (clamped, whole units)."""
@@ -86,30 +92,56 @@ class Scenario:
     def applied_release_interval(self, release_interval: float) -> float:
         return self.release_interval_lever.clamp(release_interval)
 
-    def credit_cost(self, batch_size: float, release_interval: float) -> float:
+    def applied_variance_factor(self, variance_factor: float) -> float:
+        return self.variance_lever.clamp(variance_factor)
+
+    def credit_cost(
+        self,
+        batch_size: float,
+        release_interval: float,
+        variance_factor: float = 1.0,
+    ) -> float:
         """Credits the requested lever values cost, priced on APPLIED values —
         the cost always matches what ``build_config`` would actually run.
         """
-        return self.batch_size_lever.cost(
-            self.applied_batch_size(batch_size)
-        ) + self.release_interval_lever.cost(self.applied_release_interval(release_interval))
+        return (
+            self.batch_size_lever.cost(self.applied_batch_size(batch_size))
+            + self.release_interval_lever.cost(self.applied_release_interval(release_interval))
+            + self.variance_lever.cost(self.applied_variance_factor(variance_factor))
+        )
 
-    def validate_budget(self, batch_size: float, release_interval: float) -> float:
+    def validate_budget(
+        self,
+        batch_size: float,
+        release_interval: float,
+        variance_factor: float = 1.0,
+    ) -> float:
         """Return the credit cost, raising ``KaizenBudgetExceededError`` if over budget."""
-        cost = self.credit_cost(batch_size, release_interval)
+        cost = self.credit_cost(batch_size, release_interval, variance_factor)
         if cost > self.kaizen_budget + 1e-9:
             raise KaizenBudgetExceededError(cost, self.kaizen_budget)
         return cost
 
-    def build_config(self, batch_size: float, release_interval: float) -> LineConfig:
+    def build_config(
+        self,
+        batch_size: float,
+        release_interval: float,
+        variance_factor: float = 1.0,
+    ) -> LineConfig:
         """Apply (clamped) lever values to produce the effective line config.
 
-        The seed and line layout come from the scenario, never the client. Does
-        NOT enforce the budget (see module docstring) — that is a game rule
-        applied by the RunScenario use case.
+        The seed and line layout come from the scenario, never the client. The
+        variance factor scales every station's cycle-time variance (standard
+        work). Does NOT enforce the budget (see module docstring) — that is a
+        game rule applied by the RunScenario use case.
         """
+        factor = self.applied_variance_factor(variance_factor)
+        stations = tuple(
+            replace(station, cycle_time_variance=station.cycle_time_variance * factor)
+            for station in self.base_stations
+        )
         return LineConfig(
-            stations=self.base_stations,
+            stations=stations,
             order_count=self.order_count,
             delivery_window=self.delivery_window,
             takt_time=self.takt_time,
@@ -125,10 +157,11 @@ def baseline_scenario() -> Scenario:
     batch of five, flooded release) so that improving flow visibly raises the
     score.
 
-    Budget = 16 = exactly the cost of the full fix (batch 5→1 = 4, release
-    0→6 = 12): reaching good flow takes the WHOLE budget spent on the right
-    things — measured: 15 credits misallocated ≈ 35 points, 16 well-spent ≈ 74.
-    Over-pacing (release 12 = 24 credits) is also priced out of reach.
+    Budget = 22 = exactly the cost of the full fix (batch 5→1 = 4, release
+    0→6 = 12, variance 1.0→0.25 = 6): reaching the best flow takes the WHOLE
+    budget spent on the right things — measured: full fix ≈ 89; standard work
+    cannot rescue big batches (batch 5 + release 6 + variance 0.25, 18 credits
+    ≈ 0 points). Over-pacing (release 12 = 24 credits) stays priced out.
     """
     return Scenario(
         scenario_id="baseline",
@@ -141,7 +174,7 @@ def baseline_scenario() -> Scenario:
         delivery_window=35.0,
         takt_time=6.0,
         seed=7,
-        kaizen_budget=16.0,
+        kaizen_budget=22.0,
         batch_size_lever=Lever(
             key=LEVER_BATCH_SIZE, minimum=1, maximum=20, step=1, default=5, cost_per_step=1.0
         ),
@@ -152,6 +185,14 @@ def baseline_scenario() -> Scenario:
             step=0.5,
             default=0.0,
             cost_per_step=1.0,
+        ),
+        variance_lever=Lever(
+            key=LEVER_VARIANCE_FACTOR,
+            minimum=0.25,
+            maximum=1.0,
+            step=0.25,
+            default=1.0,
+            cost_per_step=2.0,
         ),
         # Flow-quality weights (sum to 1); delivery reliability gates the score.
         weights=ScoreWeights(lead_time=0.57, flow_efficiency=0.43),
