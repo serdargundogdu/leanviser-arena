@@ -6,6 +6,7 @@ export interface LeverDescriptor {
   maximum: number;
   step: number;
   default: number;
+  cost_per_step: number;
 }
 
 export interface ScenarioDescriptor {
@@ -14,6 +15,7 @@ export interface ScenarioDescriptor {
   delivery_window: number;
   takt_time: number;
   ideal_lead_time: number;
+  kaizen_budget: number;
   levers: LeverDescriptor[];
 }
 
@@ -57,4 +59,5 @@ export interface SimulateResponse {
   waiting_mean: number;
   applied_batch_size: number;
   applied_release_interval: number;
+  credit_cost: number;
 }

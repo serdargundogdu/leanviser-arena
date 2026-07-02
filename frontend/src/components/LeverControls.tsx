@@ -24,18 +24,23 @@ export function LeverControls({ levers, values, onChange, disabled }: Props) {
     <div className="levers">
       {levers.map((lever) => {
         const meta = LABELS[lever.key] ?? { label: lever.key, hint: "" };
+        const value = values[lever.key] ?? lever.default;
+        const spent = (Math.abs(value - lever.default) / lever.step) * lever.cost_per_step;
         return (
           <label key={lever.key} className="lever">
             <div className="lever__head">
               <span className="lever__label">{meta.label}</span>
-              <span className="lever__value">{values[lever.key]}</span>
+              <span className="lever__value">
+                {value}
+                <span className="lever__cost"> · {spent} kredi</span>
+              </span>
             </div>
             <input
               type="range"
               min={lever.minimum}
               max={lever.maximum}
               step={lever.step}
-              value={values[lever.key]}
+              value={value}
               disabled={disabled}
               onChange={(event) => onChange(lever.key, Number(event.target.value))}
             />

@@ -19,7 +19,16 @@ export async function runSimulation(
     body: JSON.stringify(request),
   });
   if (!response.ok) {
-    throw new Error(`Simülasyon başarısız (HTTP ${response.status})`);
+    let message = `Simülasyon başarısız (HTTP ${response.status})`;
+    try {
+      const body = await response.json();
+      if (body?.detail?.code === "budget_exceeded") {
+        message = `Kaizen bütçesi aşıldı (${body.detail.cost} / ${body.detail.budget} kredi)`;
+      }
+    } catch {
+      // yanıt gövdesi JSON değilse genel mesajla devam et
+    }
+    throw new Error(message);
   }
   return response.json();
 }

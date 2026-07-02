@@ -56,12 +56,22 @@ export function App() {
   const onChange = (key: string, value: number) =>
     setValues((previous) => ({ ...previous, [key]: value }));
 
+  // Live kaizen cost of the current lever positions (mirrors the server's
+  // pricing; the server remains the authority and rejects over-budget runs).
+  const creditCost = scenario
+    ? scenario.levers.reduce((total, lever) => {
+        const value = values[lever.key] ?? lever.default;
+        return total + (Math.abs(value - lever.default) / lever.step) * lever.cost_per_step;
+      }, 0)
+    : 0;
+  const overBudget = scenario !== null && creditCost > scenario.kaizen_budget;
+
   return (
     <main className="app">
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.5</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.6</p>
       </header>
 
       {error && (
@@ -86,7 +96,28 @@ export function App() {
               onChange={onChange}
               disabled={busy}
             />
-            <button className="btn" onClick={() => run(values)} disabled={busy}>
+            <div className="budget">
+              <div className="budget__head">
+                <span>Kaizen bütçesi</span>
+                <span className={overBudget ? "budget__value budget__value--over" : "budget__value"}>
+                  {creditCost} / {scenario.kaizen_budget} kredi
+                </span>
+              </div>
+              <div className="budget__bar">
+                <div
+                  className={overBudget ? "budget__fill budget__fill--over" : "budget__fill"}
+                  style={{
+                    width: `${Math.min(100, (creditCost / scenario.kaizen_budget) * 100)}%`,
+                  }}
+                />
+              </div>
+              {overBudget && (
+                <p className="budget__warn">
+                  Bütçe aşıldı — iyileştirme bedava değil; kaldıraçları geri çek.
+                </p>
+              )}
+            </div>
+            <button className="btn" onClick={() => run(values)} disabled={busy || overBudget}>
               {busy ? "Simüle ediliyor…" : "Simüle Et"}
             </button>
           </div>
