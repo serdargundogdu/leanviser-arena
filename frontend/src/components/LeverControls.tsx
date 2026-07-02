@@ -14,6 +14,10 @@ const LABELS: Record<string, { label: string; hint: string }> = {
     label: "Standart İş (değişkenlik)",
     hint: "1.0 = mevcut durum; düşürdükçe çevrim süreleri kararlılaşır (standart iş yatırımı).",
   },
+  wip_cap: {
+    label: "WIP Tavanı (çekme)",
+    hint: "İçerideki azami iş — süpermarket rafı. 12 = tavansız gibi; sıkmak çekmeye geçirir.",
+  },
 };
 
 interface Props {

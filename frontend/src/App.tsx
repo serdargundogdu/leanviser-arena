@@ -18,6 +18,11 @@ const SCENARIO_COPY: Record<string, { name: string; description: string }> = {
     name: "Kararsız Hat",
     description: "Yapı yalın ama süreç oynak — israfı teşhis et, reçeteyi kopyalama.",
   },
+  pull_line: {
+    name: "Çekme Hattı",
+    description:
+      "Kaotik hatta çizelge boğulur. Çizelge değişikliği bedava: girişte backlog, içeride tavan (CONWIP)?",
+  },
 };
 
 function defaultsOf(descriptor: ScenarioDescriptor): Record<string, number> {
@@ -99,7 +104,7 @@ export function App() {
       <header className="app__header">
         <p className="app__eyebrow">LEANVİSER</p>
         <h1 className="app__title">ARENA</h1>
-        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.8</p>
+        <p className="app__tagline">Yalın üretim simülasyon arenası — sürüm 0.9</p>
       </header>
 
       {error && (
