@@ -103,6 +103,7 @@ belirsizlikte varsayımını yaz ve sor. Simülasyon sentetik veridir; "gerçek
 | Skor | `score` |
 | Standart iş | `standardWork` (kaldıraç: `variance_factor`) |
 | Değişkenlik | `variance` |
+| Çekme / WIP tavanı | `pull` / `wipCap` (kaldıraç: `wip_cap`) |
 | Anonim benchmark | `anonymizedBenchmark` |
 | Yüzdelik | `percentile` |
 
@@ -147,9 +148,7 @@ ortalamalar sabit → idealLeadTime değişmez). Bütçe 16→22 (= yeni tam dü
 ölçüldü: varyans merdiveni 74→81→86→**89**, standart iş büyük partiyi
 KURTARAMAZ (5,6,0.25 = 0 puan). Koçluk +1 kural (`high_variability`): akış
 takt'a oturmuş ama FE<0.85 ve varyansa yatırılmamışsa standart işi önerir.
-NOT: `wip_cap` kaldıracı bilinçli ertelendi — motorda cap salımı CONWIP'e
-çevirip `release_interval`'i etkisizleştiriyor; pull dersi kendi senaryosunu
-hak ediyor → v2.0 çekme challenge'ı.
+(`wip_cap` o gün ertelendi; v0.9'da motor kapısıyla çözüldü.)
 
 **v0.8'de yapıldı:** çoklu senaryo — domain registry (`scenarios()` /
 `get_scenario()`), `GET /api/scenarios` (tekil uç kaldırıldı), simulate
@@ -164,11 +163,28 @@ teşhis et. NOT: ilk taslak (varyans ×3, yapı yarı-bozuk) ölçümde çürüd
 yapısal kusur varken varyans azaltmak ödemiyor; CV=1 + takt=darboğaz da
 (%100 doluluk) patlıyor; bu yüzden takt 7.5.
 
+**v0.9'da yapıldı** (yol haritasındaki "v2.0 çekme" içeriği öne alındı):
+- **Refactor:** kaldıraç değerleri jenerik `lever_values` mapping'i (API:
+  `{scenario_id, levers}` / yanıt `applied_levers`) → farklı kaldıraç setli
+  senaryolar bedavaya.
+- **Motor kapısı:** salım UYGUNLUĞU (k·interval) + `wip_cap` **bileşimi** —
+  bloklananlar dışarıda FIFO bekler, çıkış başına biri girer; cap yok = eski
+  push **bit-aynı** (regresyon testli). Lead-time gerçek girişte başlar; teslim
+  takt vadesiyle ölçüldüğünden dışarıda bekletme kapıyı kandıramaz.
+- **`pull_line` senaryosu:** CV≈1 kaos + takt 7.5, seed 7, bütçe 8. Bu
+  senaryoda **çizelge değişikliği bedava** (salım 0/adım), tavan ucuz
+  (0.5/adım), standart iş pahalı (2/adım). Ölçüldü: dikkatli takt-push 27;
+  **PULL (flood uygunluk + cap 3) = 74, 4.5 krediye** (cap gerçek sistem gibi
+  ayarlanır: 2 starve 38, 4 gevşek 58); standart iş 79 (6 kr) ama YALNIZ
+  tempoyla (tavansız flood'da 20'ye çöker); ikisi birden 10.5 kr = bütçe dışı
+  → strateji seç. İlk taslak (takt-girişli sıkı cap) ölçümde çürüdü: takt
+  programını starve ediyor, seed-kırılgan.
+
 **Hâlâ YOK — sonraki dilimler:**
-- Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v0.9+.
-- Pull/`wip_cap` (motor semantiği: cap + tempo bileşimi) → v2.0 çekme senaryosu.
+- Skor tablosu (kalıcılık/DB ister — ayrı insan kararı) → v1.0+.
+- Pull koçluk kuralı (cap kaldıraçlı senaryolarda) → küçük aday dilim.
 - Benchmark / leaderboard agregasyonu + k-anon → v1.1.
 - Kalıcılık / DB şeması, auth, multi-tenant → sonraki dilim.
 - Three.js / 3D fabrika → v2.x.
 - LeanViser Core entegrasyonu → port bırak, adapter YOK.
-- Yamazumi / çekme challenge'ları → v2.0 (motor jenerik olduğu için genişler).
+- Yamazumi (hat dengeleme) → v2.x (motor jenerik; çekme v0.9'da geldi).

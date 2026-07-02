@@ -5,7 +5,7 @@ hattını yönetir; sistem **temin süresi (lead time)**, **akış verimliliği 
 efficiency)** ve **teslim güvenilirliği (delivery reliability)** üzerinden geri
 bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 
-> **Sürüm 0.8 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
+> **Sürüm 0.9 — izole keşif.** Yalnızca lokal geliştirme + test. Public yayın,
 > gerçek lead / kişisel veri toplama YOK. Tüm veri **sentetik ve tohumludur**;
 > bu bir ERP/MES değildir. Ayrıntılı proje sınırları için `CLAUDE.md`.
 >
@@ -23,6 +23,10 @@ bildirim verir — **çok üretmek (throughput) ödüllendirilmez**.
 > **v0.8:** çoklu senaryo — **Kararsız Hat**: yapı yalın ama CV≈1; tek ödeyen
 > düzeltme standart iş (45 → 81), yanlış tahsis hamlesizlikten beter. Teşhis
 > reçeteden önce gelir.
+> **v0.9:** **Çekme Hattı** (pull/CONWIP) — motor artık salım temposunu WIP
+> tavanıyla BİRLEŞTİRİR; kaotik hatta dikkatli çizelge 27'de kalırken girişte
+> backlog + içeride tavan 4.5 krediye 74 yapar. Çizelge değişikliği bedavadır;
+> yapı yatırımı değildir.
 
 ## Mimari
 
@@ -37,9 +41,10 @@ adapters/  →  application/  →  domain/
   sonuç.
 - `backend/app/domain/scoring/` — composite skor (saf): akış kalitesi ×
   teslim güvenilirliği (kapı); throughput terim değil.
-- `backend/app/domain/scenario/` — senaryo registry'si (`baseline` +
-  `unstable_line`), 3 kaldıraç (parti, salım, standart iş) + kaizen kredi
-  bütçesi (hamle = kredi; sunucu doğrular).
+- `backend/app/domain/scenario/` — senaryo registry'si (`baseline`,
+  `unstable_line`, `pull_line`); kaldıraçlar senaryoya göre (parti, salım,
+  standart iş, WIP tavanı) + kaizen kredi bütçesi (hamle = kredi; sunucu
+  doğrular; kaldıraç değerleri `levers` sözlüğüyle gönderilir).
 - `backend/app/domain/coaching/` — kural-tabanlı koçluk (saf; dil-nötr `Insight`).
 - `backend/app/application/` — `RunSimulation` ve `RunScenario` use-case'leri
   (engine + metrics + score'u birleştiren ince orkestrasyon).
@@ -80,24 +85,27 @@ uv run pytest
 from app.application.run_scenario import RunScenarioCommand, run_scenario
 from app.domain.scenario.scenario import baseline_scenario
 
+# Kaldıraç değerleri sözlükle verilir; eksik anahtar = kaldıraç varsayılanı.
 # İki-kaldıraç düzeltmesi: parti=1 (tek-parça), salım=6 (~takt) → 16 kredi
 lean = run_scenario(
-    RunScenarioCommand(scenario=baseline_scenario(), batch_size=1, release_interval=6.0)
+    RunScenarioCommand(
+        scenario=baseline_scenario(),
+        lever_values={"batch_size": 1, "release_interval": 6.0},
+    )
 )
 print(round(lean.score.composite, 1))    # ~74 / 100
 
 # Tam düzeltme: + standart iş (değişkenlik 0.25) → 22 kredi = tüm bütçe
 full = run_scenario(
     RunScenarioCommand(
-        scenario=baseline_scenario(), batch_size=1, release_interval=6.0, variance_factor=0.25
+        scenario=baseline_scenario(),
+        lever_values={"batch_size": 1, "release_interval": 6.0, "variance_factor": 0.25},
     )
 )
 print(round(full.score.composite, 1))    # ~89 / 100
 
-# Aşırı üretim (parti=5, flood): akış çöker — çıktı ödüllenmez, WIP şişer
-push = run_scenario(
-    RunScenarioCommand(scenario=baseline_scenario(), batch_size=5, release_interval=0.0)
-)
+# Varsayılanlar (boş sözlük) = parti 5 + flood: akış çöker — çıktı ödüllenmez
+push = run_scenario(RunScenarioCommand(scenario=baseline_scenario()))
 print(round(push.score.composite, 1))    # ~0 / 100
 ```
 
@@ -125,9 +133,13 @@ npm run build    # üretim derlemesi (tsc --noEmit && vite build)
 `http://localhost:5173` aç. API'yi doğrudan da deneyebilirsin:
 
 ```bash
+# Senaryo listesi
+curl http://localhost:8000/api/scenarios
+
+# Çekme Hattı'nda pull oyna: girişte backlog (salım 0, bedava) + tavan 3
 curl -X POST http://localhost:8000/api/simulate \
   -H 'Content-Type: application/json' \
-  -d '{"batch_size":1,"release_interval":6.0}'
+  -d '{"scenario_id":"pull_line","levers":{"release_interval":0,"wip_cap":3}}'
 ```
 
 ## Docker (backend)
@@ -150,8 +162,8 @@ docker run -p 8080:8080 leanviser-arena-backend
 
   Bunlar ayarlanana dek deploy adımı atlanır (push'lar yeşil kalır).
 
-## Sıradaki dilim (v0.9 adayı)
+## Sıradaki dilim (v1.0 adayları)
 
-Skor tablosu / koşu geçmişi — **kalıcılık (DB) kararı gerektirir** (izole
-keşif bayrağına dokunur; ayrı insan kararı). Pull/`wip_cap` → v2.0 çekme
-senaryosu. Kapsam bayrakları için `CLAUDE.md`.
+Skor tablosu / koşu geçmişi — **kalıcılık (DB) kararı gerektirir**; public
+yayın da ayrı insan kararı (izole keşif bayrağı). Küçük aday: pull koçluk
+kuralı. Kapsam bayrakları için `CLAUDE.md`.
